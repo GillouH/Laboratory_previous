@@ -1,1 +1,1 @@
-from laboratoryTools.network.resource import serverAddress, serverAddressStr
+from laboratoryTools.network.resources import serverAddress, serverAddressStr
