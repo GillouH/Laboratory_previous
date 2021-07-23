@@ -2,15 +2,15 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>bd1318a9-44d4-4ffd-b0a1-2e299a66a76e</ProjectGuid>
+    <ProjectGuid>acc36087-0a2b-41c5-a807-e75532779c5e</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Server.py</StartupFile>
+    <StartupFile>LaboratoryTools.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
-    <Name>Server</Name>
-    <RootNamespace>Server</RootNamespace>
+    <Name>LaboratoryTools</Name>
+    <RootNamespace>LaboratoryTools</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,14 +21,13 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Server.py" />
+    <Compile Include="LaboratoryTools.py" />
+    <Compile Include="laboratoryTools\network\resources.py" />
+    <Compile Include="laboratoryTools\network\__init__.py" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LaboratoryTools\LaboratoryTools.pyproj">
-      <Name>LaboratoryTools</Name>
-      <Project>{acc36087-0a2b-41c5-a807-e75532779c5e}</Project>
-      <Private>True</Private>
-    </ProjectReference>
+    <Folder Include="laboratoryTools\" />
+    <Folder Include="laboratoryTools\network\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
