@@ -1,10 +1,10 @@
-from socket import socket, AF_INET, SOCK_STREAM
-from laboratoryTools.network import serverAddress, serverAddressStr
+from socket import socket
+from laboratoryTools.network import createSocket, serverAddress, serverAddressStr, checkInput
 
 
 MSG_CLIENT_DISCONNECTION:str = ""
 
-server:socket = socket(family=AF_INET, type=SOCK_STREAM)
+server:socket = createSocket()
 server.bind(serverAddress)
 server.listen(5)
 print("Server ready at {}".format(serverAddressStr))
@@ -22,7 +22,7 @@ while serverLoop:
         serverLoop = False
     else:
         print("Message received from the client at {}:\n\t{}".format(infos, msgReceived))
-        client.send(input("Reply to message from the client at {}:\n\t_".format(infos)).encode())
+        client.send(checkInput(prompt="Reply to message from the client at {}:\n\t_".format(infos)).encode())
 
 print("Server shutdown {}".format(serverAddress))
 server.close()
