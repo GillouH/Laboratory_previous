@@ -4,7 +4,7 @@ from laboratoryTools.network import serverAddress, serverAddressStr
 
 MSG_CLIENT_DISCONNECTION:str = ""
 
-server:socket = socket(AF_INET, SOCK_STREAM)
+server:socket = socket(family=AF_INET, type=SOCK_STREAM)
 server.bind(serverAddress)
 server.listen(5)
 print("Server ready at {}".format(serverAddressStr))

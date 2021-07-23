@@ -4,7 +4,7 @@ from laboratoryTools.network import serverAddress, serverAddressStr
 
 STOP:str = "STOP"
 
-server:socket = socket(AF_INET, SOCK_STREAM)
+server:socket = socket(family=AF_INET, type=SOCK_STREAM)
 connected:bool = False
 server.connect(serverAddress)
 print("Connected to the server at {}".format(serverAddressStr))
