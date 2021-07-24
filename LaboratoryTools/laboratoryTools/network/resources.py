@@ -12,5 +12,7 @@ def getIP()->str:
 # Server constant
 IP:str = getIP()
 PORT:int = 12800
+TIMEOUT:float = 0.05
 serverAddress:tuple[str,int] = (IP, PORT)
 serverAddressStr:str = "{}:{}".format(*serverAddress)
+STOP_SERVER:str = "STOP SERVER"

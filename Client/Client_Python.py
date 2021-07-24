@@ -1,5 +1,5 @@
 from socket import socket
-from laboratoryTools.network import createSocket, serverAddress, serverAddressStr, checkInput
+from laboratoryTools.network import createSocket, serverAddress, serverAddressStr, checkInput, STOP_SERVER
 
 
 STOP:str = "STOP"
@@ -18,6 +18,9 @@ while clientLoop:
         server.send(msgToSend.encode())
         msgReceived:str = server.recv(1024).decode()
         print("Message received from the server at {}:\n\t{}".format(serverAddressStr, msgReceived))
+        if msgToSend == STOP_SERVER and msgReceived == STOP_SERVER:
+            print("The server at {} is shutting down.".format(serverAddressStr))
+            clientLoop = False
 
 print("Disconnecting from the server at {}".format(serverAddressStr))
 server.close()
