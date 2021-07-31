@@ -1,5 +1,3 @@
-from tkinter import NS, VERTICAL
-
 from tkinter import Tk, Widget, StringVar, Frame, Button, Label, Entry, Text, Scrollbar # Classes used
 from tkinter.font import Font
 from laboratoryTools.network import serverAddress, createSocket, TIMEOUT, STOP_SERVER
@@ -21,7 +19,7 @@ class ClientWindow(Tk):
     CONNECTED:str = "Connected"
     DISCONNECTION:str = "Disconnection"
     DISCONNECTED:str = "Disconnected"
-
+    
     def __init__(self):
         super().__init__()
 
