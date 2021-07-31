@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # Python test project
 testPython
+
+# Log files
+log.txt

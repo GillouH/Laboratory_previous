@@ -11,6 +11,7 @@ from tkinter import END # Index Constant for Text
 from tkinter import NSEW, NS    # Fill Direction Size Constant
 from tkinter import RIGHT   # Widget side display Constant
 from tkinter import VERTICAL    # Scrollbar Direction Constant
+from laboratoryTools.log import logger
 
 
 class ClientWindow(Tk):
@@ -99,7 +100,7 @@ class ClientWindow(Tk):
             self.listenServerThread.start()
             self.inputTextEntry.focus()
         except Exception as e:
-            print(e)
+            logger.error(e)
             for widget in self.serverConfigWidget:
                 widget.config(state=NORMAL)
             self.connectButton.config(text=ClientWindow.CONNECTION, state=NORMAL)
@@ -190,5 +191,10 @@ class ClientWindow(Tk):
         self.createShowTextFrame(master=frame, width=width, row=0, column=0)
         self.createInputTextFrame(master=frame, width=width, row=1, column=0)
 
-window:ClientWindow = ClientWindow()
-window.mainloop()
+
+if __name__ == "__main__":
+    try:
+        window:ClientWindow = ClientWindow()
+        window.mainloop()
+    except Exception as e:
+        logger.error(msg=e)

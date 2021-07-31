@@ -1,5 +1,6 @@
 from socket import getaddrinfo, gethostname, socket, AF_INET, SOCK_STREAM
 from laboratoryTools.network.resources import PORT
+from laboratoryTools.log import logger
 
 
 def getIP()->str:
@@ -23,3 +24,10 @@ def checkInput(prompt:str="")->str:
         print("Please, enter a non empty value.")
         text = input(prompt)
     return text
+
+
+if __name__ == "__main__":
+    try:
+        pass
+    except Exception as e:
+        logger.error(msg=e)
