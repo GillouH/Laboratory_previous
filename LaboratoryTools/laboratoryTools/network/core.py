@@ -1,6 +1,6 @@
 from socket import getaddrinfo, gethostname, socket, AF_INET, SOCK_STREAM
 from laboratoryTools.network.resources import PORT
-from laboratoryTools.log import logger
+from laboratoryTools.logging import logger
 
 
 def getIP()->str:

@@ -1,6 +1,6 @@
 from socket import socket
 from laboratoryTools.network import createSocket, serverAddress, serverAddressStr, TIMEOUT, checkInput, STOP_SERVER
-from laboratoryTools.log import logger
+from laboratoryTools.logging import logger
 from select import select
 
 

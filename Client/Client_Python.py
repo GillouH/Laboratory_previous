@@ -9,7 +9,7 @@ from tkinter import END # Index Constant for Text
 from tkinter import NSEW, NS    # Fill Direction Size Constant
 from tkinter import RIGHT   # Widget side display Constant
 from tkinter import VERTICAL    # Scrollbar Direction Constant
-from laboratoryTools.log import logger
+from laboratoryTools.logging import logger
 from os.path import exists
 from json import loads, dumps
 

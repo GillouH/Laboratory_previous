@@ -365,8 +365,5 @@ FodyWeavers.xsd
 # Python test project
 testPython
 
-# Log files
-log.txt
-
 # Memory file for Python Client
 memory.json

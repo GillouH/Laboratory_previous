@@ -1,4 +1,4 @@
-from laboratoryTools.log import logger
+from laboratoryTools.logging import logger
 
 
 if __name__ == "__main__":

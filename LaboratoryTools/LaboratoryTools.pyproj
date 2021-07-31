@@ -22,10 +22,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="LaboratoryTools.py" />
-    <Compile Include="laboratoryTools\log\core.py">
+    <Compile Include="laboratoryTools\logging\core.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="laboratoryTools\log\__init__.py">
+    <Compile Include="laboratoryTools\logging\__init__.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="laboratoryTools\network\core.py">
@@ -39,7 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="laboratoryTools\" />
-    <Folder Include="laboratoryTools\log\" />
+    <Folder Include="laboratoryTools\logging\" />
     <Folder Include="laboratoryTools\network\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
