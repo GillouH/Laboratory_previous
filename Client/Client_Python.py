@@ -10,6 +10,8 @@ from tkinter import NSEW, NS    # Fill Direction Size Constant
 from tkinter import RIGHT   # Widget side display Constant
 from tkinter import VERTICAL    # Scrollbar Direction Constant
 from laboratoryTools.log import logger
+from os.path import exists
+from json import loads, dumps
 
 
 class ClientWindow(Tk):
@@ -19,6 +21,14 @@ class ClientWindow(Tk):
     CONNECTED:str = "Connected"
     DISCONNECTION:str = "Disconnection"
     DISCONNECTED:str = "Disconnected"
+
+    MEMORY_FILE_NAME:str = "memory.json"
+    IP:str = "IP"
+    PORT:str = "PORT"
+    MEMORY_JSON_KEY:dict[str,str] = {
+        IP: "MEMORY_JSON_KEY_IP",
+        PORT: "MEMORY_JSON_KEY_PORT"
+    }
     
     def __init__(self):
         super().__init__()
@@ -28,15 +38,11 @@ class ClientWindow(Tk):
         self.isConnected:bool = False
 
         self.portTextVariable:StringVar = StringVar()
-        self.portTextVariable.set(value=serverAddress[1])
         self.portTextVariable.trace_add(mode="write", callback=self.updateConnectionButton)
             
-        IPDefaultValueList:list[str] = serverAddress[0].split(sep=".")
-        size:int = len(IPDefaultValueList)
-        self.IPTextVariableList:list[StringVar] = [StringVar() for i in range(size)]
-        for i in range(size):
-            self.IPTextVariableList[i].set(value=IPDefaultValueList[i])
-            self.IPTextVariableList[i].trace_add(mode="write", callback=self.updateConnectionButton)
+        self.IPTextVariableList:list[StringVar] = [StringVar() for IPValue in serverAddress[0].split(sep=".")]
+        for IPTextVariable in self.IPTextVariableList:
+            IPTextVariable.trace_add(mode="write", callback=self.updateConnectionButton)
 
         self.inputTextVariable:StringVar = StringVar()
         self.inputTextVariable.trace_add(mode="write", callback=self.updateSendButtonState)
@@ -44,6 +50,8 @@ class ClientWindow(Tk):
         self.setTitle(info=ClientWindow.DISCONNECTED)
         self.createServerFrame(master=self, row=0, column=0)
         self.createMessageFrame(master=self, row=1, column=0)
+
+        self.restoreData()
 
     def isAbleToConnect(self)->bool:
         textVariableList = self.IPTextVariableList + [self.portTextVariable]
@@ -126,7 +134,7 @@ class ClientWindow(Tk):
         self.updateSendButtonState()
 
     def connection(self):
-        self.ip:str = ".".join(textVariable.get() for textVariable in self.IPTextVariableList)
+        self.ip:str = self.getIP()
         self.port:int = int(self.portTextVariable.get())
         thread:Thread = Thread(target=self.connectionThreadRunMethod)
         thread.start()
@@ -196,10 +204,58 @@ class ClientWindow(Tk):
         self.createShowTextFrame(master=frame, width=width, row=0, column=0)
         self.createInputTextFrame(master=frame, width=width, row=1, column=0)
 
+    def getIP(self)->str:
+        return ".".join(textVariable.get() for textVariable in self.IPTextVariableList)
+    def setIP(self, IP:str):
+        IPValueList:list[str] = IP.split(sep=".")
+        for i in range(len(IPValueList)):
+            self.IPTextVariableList[i].set(value=IPValueList[i])
+    def restoreDefaultIP(self):
+        self.setIP(IP=serverAddress[0])
+    def restoreDefaultPort(self):
+        self.portTextVariable.set(value=serverAddress[1])
+    def restoreDefaultData(self):
+        self.restoreDefaultIP()
+        self.restoreDefaultPort()        
+
+    def restoreData(self):
+        if exists(path=ClientWindow.MEMORY_FILE_NAME):
+            with open(file=ClientWindow.MEMORY_FILE_NAME, mode="r") as file:
+                content:str = file.read()
+            try:
+                data:dict[str,str] = loads(s=content)
+            except Exception as e:
+                logger.error(msg=e)
+                self.restoreDefaultData()
+                return
+            try:
+                IPSaved:str = data[ClientWindow.MEMORY_JSON_KEY[ClientWindow.IP]]
+                self.setIP(IP=IPSaved)
+            except Exception as e:
+                logger.error(msg=e)
+                self.restoreDefaultIP()
+            try:
+                portSaved:str = data[ClientWindow.MEMORY_JSON_KEY[ClientWindow.PORT]]
+                self.portTextVariable.set(value=portSaved)
+            except Exception as e:
+                logger.error(msg=e)
+                self.restoreDefaultPort()
+        else:
+            self.restoreDefaultData()
+
+    def saveData(self):
+        data:dict[str,str] = {
+            ClientWindow.MEMORY_JSON_KEY[ClientWindow.IP]: self.getIP(),
+            ClientWindow.MEMORY_JSON_KEY[ClientWindow.PORT]: self.portTextVariable.get()
+        }
+        with open(file=ClientWindow.MEMORY_FILE_NAME, mode="w") as file:
+            file.write(dumps(obj=data, indent=4, ensure_ascii=False))
+
 
 if __name__ == "__main__":
     try:
         window:ClientWindow = ClientWindow()
         window.mainloop()
+        window.saveData()
     except Exception as e:
         logger.error(msg=e)
