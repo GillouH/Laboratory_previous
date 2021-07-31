@@ -26,8 +26,8 @@ def startServer():
                 rlist, wList, xList = select(clientList, [], [], TIMEOUT)
                 for client in rlist:
                     try:
-                        msgReceived:str = client.recv(1024).decode()
                         addr:tuple[str,int] = client.getpeername()
+                        msgReceived:str = client.recv(1024).decode()
                         if msgReceived == MSG_CLIENT_DISCONNECTION:
                             logger.info(msg="Client disconnected: {}:{}".format(*addr))
                             client.close()
@@ -37,12 +37,12 @@ def startServer():
                         else:
                             logger.info(msg="Message received from the client at {}:{}:\n\t{}".format(*addr, msgReceived))
                     except Exception as e:
-                        logger.error(msg=e)
+                        logger.error(msg="{} ({}:{})".format(e, *addr))
                         try:
                             client.close()
                             clientList.remove(client)
                         except Exception as e:
-                            logger.error(msg=e)
+                            logger.error(msg="{} ({}:{})".format(e, *addr))
 
         for client in clientList:
             client.send(STOP_SERVER.encode())
