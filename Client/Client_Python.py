@@ -10,7 +10,7 @@ from tkinter import NSEW, NS    # Fill Direction Size Constant
 from tkinter import RIGHT   # Widget side display Constant
 from tkinter import VERTICAL    # Scrollbar Direction Constant
 from laboratoryTools.logging import logger
-from os.path import exists
+from os.path import isfile
 from json import loads, dumps
 
 
@@ -219,7 +219,7 @@ class ClientWindow(Tk):
         self.restoreDefaultPort()        
 
     def restoreData(self):
-        if exists(path=ClientWindow.MEMORY_FILE_NAME):
+        if isfile(path=ClientWindow.MEMORY_FILE_NAME):
             with open(file=ClientWindow.MEMORY_FILE_NAME, mode="r") as file:
                 content:str = file.read()
             try:
