@@ -1,5 +1,4 @@
-from socket import socket
-from laboratoryTools.network import createSocket, serverAddress, serverAddressStr, TIMEOUT, checkInput, STOP_SERVER
+from laboratoryTools.network import Server, Client, TIMEOUT, STOP_SERVER
 from laboratoryTools.logging import logger
 from select import select
 
@@ -8,57 +7,56 @@ MSG_CLIENT_DISCONNECTION:str = ""
 
 def startServer():
     try:
-        server:socket = createSocket()
-        server.bind(serverAddress)
-        server.listen(5)
-        logger.info(msg="Server ready at {}".format(serverAddressStr))
+        server:Server = Server("Laboratory")
+        logger.info(msg="Server ready {}".format(server))
 
-        clientList:list[socket] = []
+        clientList:list[Client] = []
         serverLoop:bool = True
         while serverLoop:
             rlist, wList, xList = select([server], [], [], TIMEOUT)
             for newConnection in rlist:
                 client, addr = newConnection.accept()
-                logger.info(msg="Client connected: {}:{}".format(*addr))
+                client:Client = Client(socketSrc=client)
+                logger.info(msg="Client connected {}".format(client))
                 clientList.append(client)
 
             if len(clientList) > 0:
                 rlist, wList, xList = select(clientList, [], [], TIMEOUT)
                 for client in rlist:
                     try:
-                        addr:tuple[str,int] = client.getpeername()
                         msgReceived:str = client.recv(1024).decode()
                         if msgReceived == MSG_CLIENT_DISCONNECTION:
-                            logger.info(msg="Client disconnected: {}:{}".format(*addr))
+                            logger.info(msg="Client disconnected: ".format(client))
                             client.close()
                             clientList.remove(client)
                         elif msgReceived == STOP_SERVER:
                             serverLoop = False
                         else:
-                            logger.info(msg="Message received from the client at {}:{}:\n\t{}".format(*addr, msgReceived))
+                            logger.info(msg="Message received from the client {}:\n\t{}".format(client, msgReceived))
                     except Exception as e:
-                        logger.error(msg="{} ({}:{})".format(e, *addr))
+                        logger.error(msg="{} {}".format(e, client))
                         try:
                             client.close()
                             clientList.remove(client)
                         except Exception as e:
-                            logger.error(msg="{} ({}:{})".format(e, *addr))
+                            logger.error(msg="{} {}".format(e, client))
 
         for client in clientList:
             client.send(STOP_SERVER.encode())
             client.close()
         clientList.clear()
 
-        logger.info(msg="Server shutdown {}".format(serverAddressStr))
+        logger.info(msg="Server shutdown {}".format(server))
         server.close()
-    except:
+    except Exception as e:
+        logger.error(msg=e)
         try:
             for client in clientList:
                 client.send(STOP_SERVER.encode())
                 client.close()
             clientList.clear()
         finally:
-            logger.info(msg="Server shutdown {}".format(serverAddressStr))
+            logger.info(msg="Server shutdown {}".format(server))
             server.close()
 
 

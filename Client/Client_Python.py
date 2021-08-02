@@ -1,9 +1,8 @@
 from tkinter import Tk, Widget, StringVar, Frame, Button, Label, Entry, Text, Scrollbar # Classes used
 from tkinter.font import Font
-from laboratoryTools.network import serverAddress, createSocket, TIMEOUT, STOP_SERVER
+from laboratoryTools.network import serverAddress, TIMEOUT, STOP_SERVER, Client
 from tkinter import NORMAL, DISABLED    # Widget State Constants
 from threading import Thread, get_ident
-from socket import socket
 from select import select
 from tkinter import END # Index Constant for Text
 from tkinter import NSEW, NS    # Fill Direction Size Constant
@@ -101,7 +100,7 @@ class ClientWindow(Tk):
             self.connectButton.config(text=ClientWindow.CONNECTING, state=DISABLED)
             self.setTitle(info=ClientWindow.CONNECTING)
 
-            self.socket:socket = createSocket()
+            self.socket:Client = Client("Nom de Test")
             self.socket.connect((self.ip, self.port))
             
             self.connectButton.config(text=ClientWindow.DISCONNECTION, command=self.disconnection, state=NORMAL)
