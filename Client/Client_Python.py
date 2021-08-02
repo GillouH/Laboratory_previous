@@ -6,7 +6,7 @@ from threading import Thread, get_ident
 from select import select
 from tkinter import END # Index Constant for Text
 from tkinter import NSEW, NS    # Fill Direction Size Constant
-from tkinter import RIGHT   # Widget side display Constant
+from tkinter import LEFT, RIGHT # Widget side display Constant
 from tkinter import VERTICAL    # Scrollbar Direction Constant
 from laboratoryTools.logging import logger
 from os.path import isfile
@@ -24,10 +24,10 @@ class ClientWindow(Tk):
     MEMORY_FILE_NAME:str = "memory.json"
     IP:str = "IP"
     PORT:str = "PORT"
-    MEMORY_JSON_KEY:dict[str,str] = {
-        IP: "MEMORY_JSON_KEY_IP",
-        PORT: "MEMORY_JSON_KEY_PORT"
-    }
+    NAME:str = "NAME"
+    MEMORY_JSON_KEY:dict[str,str] = {}
+    for key in [IP, PORT, NAME]:
+        MEMORY_JSON_KEY[key] = "_".join(["MEMORY_JSON_KEY", key])
     
     def __init__(self):
         super().__init__()
@@ -35,6 +35,9 @@ class ClientWindow(Tk):
         self.FONT:Font = Font(root=self, size=15)
         self.serverConfigWidget:list[Widget] = []
         self.isConnected:bool = False
+
+        self.nameTextVariable:StringVar = StringVar()
+        self.nameTextVariable.trace_add(mode="write", callback=self.updateConnectionButton)
 
         self.portTextVariable:StringVar = StringVar()
         self.portTextVariable.trace_add(mode="write", callback=self.updateConnectionButton)
@@ -53,7 +56,7 @@ class ClientWindow(Tk):
         self.restoreData()
 
     def isAbleToConnect(self)->bool:
-        textVariableList = self.IPTextVariableList + [self.portTextVariable]
+        textVariableList = self.IPTextVariableList + [self.portTextVariable, self.nameTextVariable]
         return not self.isConnected and not False in list(map(lambda textVariable: textVariable.get() != "", textVariableList))
     def updateConnectionButton(self, *paramList):
         self.connectButton.config(state=NORMAL if self.isAbleToConnect() else DISABLED)
@@ -100,7 +103,7 @@ class ClientWindow(Tk):
             self.connectButton.config(text=ClientWindow.CONNECTING, state=DISABLED)
             self.setTitle(info=ClientWindow.CONNECTING)
 
-            self.socket:Client = Client("Nom de Test")
+            self.socket:Client = Client(name=self.nameTextVariable.get())
             self.socket.connect((self.ip, self.port))
             
             self.connectButton.config(text=ClientWindow.DISCONNECTION, command=self.disconnection, state=NORMAL)
@@ -172,6 +175,10 @@ class ClientWindow(Tk):
 
     def createServerFrame(self, master:Widget, row:int, column:int):
         frame:Frame = self.createFrame(master=master, sticky=NSEW)
+        Label(master=frame, text="Name: ", font=self.FONT).pack(side=LEFT)
+        nameEntry:Entry = Entry(master=frame, textvariable=self.nameTextVariable, width=10, font=self.FONT, justify=RIGHT)
+        nameEntry.pack(side=LEFT)
+        self.serverConfigWidget.append(nameEntry)
         buttonWidth:int = max(len(ClientWindow.CONNECTION), len(ClientWindow.CONNECTING), len(ClientWindow.DISCONNECTION))
         self.connectButton:Button = Button(master=frame, text=ClientWindow.CONNECTION, width=buttonWidth, command=self.connection, font=self.FONT)
         self.connectButton.pack(side=RIGHT)
@@ -210,17 +217,20 @@ class ClientWindow(Tk):
 
     def getIP(self)->str:
         return ".".join(textVariable.get() for textVariable in self.IPTextVariableList)
-    def setIP(self, IP:str):
-        IPValueList:list[str] = IP.split(sep=".")
+    def setIP(self, value:str):
+        IPValueList:list[str] = value.split(sep=".")
         for i in range(len(IPValueList)):
             self.IPTextVariableList[i].set(value=IPValueList[i])
     def restoreDefaultIP(self):
-        self.setIP(IP=serverAddress[0])
+        self.setIP(value=serverAddress[0])
     def restoreDefaultPort(self):
         self.portTextVariable.set(value=serverAddress[1])
+    def restoreDefaultName(self):
+        self.nameTextVariable.set(value="")
     def restoreDefaultData(self):
         self.restoreDefaultIP()
-        self.restoreDefaultPort()        
+        self.restoreDefaultPort()  
+        self.restoreDefaultName()
 
     def restoreData(self):
         if isfile(path=ClientWindow.MEMORY_FILE_NAME):
@@ -232,25 +242,26 @@ class ClientWindow(Tk):
                 logger.error(msg=e)
                 self.restoreDefaultData()
                 return
-            try:
-                IPSaved:str = data[ClientWindow.MEMORY_JSON_KEY[ClientWindow.IP]]
-                self.setIP(IP=IPSaved)
-            except Exception as e:
-                logger.error(msg=e)
-                self.restoreDefaultIP()
-            try:
-                portSaved:str = data[ClientWindow.MEMORY_JSON_KEY[ClientWindow.PORT]]
-                self.portTextVariable.set(value=portSaved)
-            except Exception as e:
-                logger.error(msg=e)
-                self.restoreDefaultPort()
+            keySetDefaultList = [
+                (ClientWindow.IP, self.setIP, self.restoreDefaultIP),
+                (ClientWindow.PORT, self.portTextVariable.set, self.restoreDefaultPort),
+                (ClientWindow.NAME, self.nameTextVariable.set, self.restoreDefaultName)
+            ]
+            for jsonKey, setMethod, defaultMethod in keySetDefaultList:
+                try:
+                    value = data[ClientWindow.MEMORY_JSON_KEY[jsonKey]]
+                    setMethod(value=value)
+                except Exception as e:
+                    logger.error(msg=e)
+                    defaultMethod()
         else:
             self.restoreDefaultData()
 
     def saveData(self):
         data:dict[str,str] = {
             ClientWindow.MEMORY_JSON_KEY[ClientWindow.IP]: self.getIP(),
-            ClientWindow.MEMORY_JSON_KEY[ClientWindow.PORT]: self.portTextVariable.get()
+            ClientWindow.MEMORY_JSON_KEY[ClientWindow.PORT]: self.portTextVariable.get(),
+            ClientWindow.MEMORY_JSON_KEY[ClientWindow.NAME]: self.nameTextVariable.get()
         }
         with open(file=ClientWindow.MEMORY_FILE_NAME, mode="w") as file:
             file.write(dumps(obj=data, indent=4, ensure_ascii=False))
