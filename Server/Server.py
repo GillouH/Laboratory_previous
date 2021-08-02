@@ -26,7 +26,7 @@ def startServer():
                     try:
                         msgReceived:str = client.recv(1024).decode()
                         if msgReceived == MSG_CLIENT_DISCONNECTION:
-                            logger.info(msg="Client disconnected: ".format(client))
+                            logger.info(msg="Client disconnected: {}".format(client))
                             client.close()
                             clientList.remove(client)
                         elif msgReceived == STOP_SERVER:

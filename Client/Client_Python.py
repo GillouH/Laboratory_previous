@@ -91,7 +91,7 @@ class ClientWindow(Tk):
                     msgReceived:str = socketWithMsg.recv(1024).decode()
                     addr:tuple[str,int] = socketWithMsg.getpeername()
                     self.displayMsg(msg="<<{}\n".format(msgReceived))
-                    if msgReceived == STOP_SERVER:
+                    if msgReceived == STOP_SERVER or msgReceived == "":
                         self.disconnection()
                 except ConnectionResetError:
                     self.disconnection()
