@@ -141,7 +141,12 @@ class ClientWindow(Tk):
 
     # Callbacks to check inputs for PORT/IP entries
     def checkInputIsInt(self, input:str, max:int)->bool:
-        return input == "" or (input.isdigit() and int(input) >= 0 and int(input) <= max)
+        try:
+            number = int(input)
+            return number >= 0 and number <= max
+        except Exception as e:
+            logger.error(e)
+            return input == ""
     def checkPortInput(self, input:str)->bool:
         return self.checkInputIsInt(input=input, max=65535)
     def checkIPInput(self, input:str)->bool:

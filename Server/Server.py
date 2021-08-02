@@ -66,4 +66,4 @@ if __name__ == "__main__":
     try:
         startServer()
     except Exception as e:
-        looger.error(msg=e)
+        logger.error(msg=e)
