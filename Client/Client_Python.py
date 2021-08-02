@@ -1,6 +1,6 @@
 from tkinter import Tk, Widget, StringVar, Frame, Button, Label, Entry, Text, Scrollbar # Classes used
 from tkinter.font import Font
-from laboratoryTools.network import serverAddress, TIMEOUT, STOP_SERVER, Client
+from laboratoryTools.network import serverAddress, TIMEOUT, STOP_SERVER, ClientSocket
 from tkinter import NORMAL, DISABLED    # Widget State Constants
 from threading import Thread, get_ident
 from select import select
@@ -85,7 +85,7 @@ class ClientWindow(Tk):
 
     def listenServerThreadRunMethod(self):
         while self.isConnected:
-            socketList, wList, xList = select([self.socket], [], [], TIMEOUT)
+            socketList, wList, xList = select([self.clientSocket], [], [], TIMEOUT)
             for socketWithMsg in socketList:
                 try:
                     msgReceived:str = socketWithMsg.recv(1024).decode()
@@ -103,8 +103,8 @@ class ClientWindow(Tk):
             self.connectButton.config(text=ClientWindow.CONNECTING, state=DISABLED)
             self.setTitle(info=ClientWindow.CONNECTING)
 
-            self.socket:Client = Client(name=self.nameTextVariable.get())
-            self.socket.connect((self.ip, self.port))
+            self.clientSocket:ClientSocket = ClientSocket(name=self.nameTextVariable.get())
+            self.clientSocket.connect((self.ip, self.port))
             
             self.connectButton.config(text=ClientWindow.DISCONNECTION, command=self.disconnection, state=NORMAL)
             self.setTitle(info=ClientWindow.CONNECTED)
@@ -127,7 +127,7 @@ class ClientWindow(Tk):
         self.isConnected = False
         if get_ident() != self.listenServerThread.ident:
             self.listenServerThread.join()
-        self.socket.close()
+        self.clientSocket.close()
 
         self.setTitle(info=ClientWindow.DISCONNECTED)
         self.connectButton.config(text=ClientWindow.CONNECTION, command=self.connection)
@@ -196,7 +196,7 @@ class ClientWindow(Tk):
     def sendMessage(self):
         if self.isAbleToSend():
             msgToSend:str = self.inputTextVariable.get()
-            self.socket.send(msgToSend.encode())
+            self.clientSocket.send(msgToSend.encode())
             self.displayMsg(msg=">>{}\n".format(msgToSend))
             self.inputTextVariable.set(value="")
 

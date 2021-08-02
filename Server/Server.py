@@ -1,4 +1,4 @@
-from laboratoryTools.network import Server, Client, TIMEOUT, STOP_SERVER
+from laboratoryTools.network import ServerSocket, ClientSocket, TIMEOUT, STOP_SERVER
 from laboratoryTools.logging import logger
 from select import select
 
@@ -7,16 +7,16 @@ MSG_CLIENT_DISCONNECTION:str = ""
 
 def startServer():
     try:
-        server:Server = Server("Laboratory")
+        server:ServerSocket = ServerSocket("Laboratory")
         logger.info(msg="Server ready {}".format(server))
 
-        clientList:list[Client] = []
+        clientList:list[ClientSocket] = []
         serverLoop:bool = True
         while serverLoop:
             rlist, wList, xList = select([server], [], [], TIMEOUT)
             for newConnection in rlist:
                 client, addr = newConnection.accept()
-                client:Client = Client(socketSrc=client)
+                client:ClientSocket = ClientSocket(socketSrc=client)
                 logger.info(msg="Client connected {}".format(client))
                 clientList.append(client)
 

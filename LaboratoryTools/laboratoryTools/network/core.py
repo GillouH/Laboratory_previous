@@ -76,7 +76,7 @@ class Socket(socket):
         s += "]"
         return s
 
-class Server(Socket):
+class ServerSocket(Socket):
     def __init__(self, name:str=None, ip:str=IP, port:int=PORT):
         super().__init__(name=name)
         self.bind((ip, port))
@@ -85,7 +85,7 @@ class Server(Socket):
     def getIPPort(self):
         return self.getsockname()
 
-class Client(Socket):    
+class ClientSocket(Socket):    
     def getIPPort(self):
         return self.getpeername()
 
