@@ -3,65 +3,69 @@ from laboratoryTools.logging import logger
 from select import select
 
 
-MSG_CLIENT_DISCONNECTION:str = ""
+class Server:
+    MSG_CLIENT_DISCONNECTION:str = ""
 
-def startServer():
-    try:
-        server:ServerSocket = ServerSocket("Laboratory")
-        logger.info(msg="Server ready {}".format(server))
+    def manageNewConnection(self):
+        rList, wList, xList = select([self.serverSocket], [], [], TIMEOUT)
+        for socketWaitingForConnection in rlist:
+            socketConnected, addr = socketWaitingForConnection.accept()
+            clientSocket:ClientSocket = ClientSocket(socketSrc=socketConnected)
+            logger.info(msg="Client connected {}".format(clientSocket))
+            self.clientSocketList.append(clientSocket)
 
-        clientList:list[ClientSocket] = []
-        serverLoop:bool = True
-        while serverLoop:
-            rlist, wList, xList = select([server], [], [], TIMEOUT)
-            for newConnection in rlist:
-                client, addr = newConnection.accept()
-                client:ClientSocket = ClientSocket(socketSrc=client)
-                logger.info(msg="Client connected {}".format(client))
-                clientList.append(client)
-
-            if len(clientList) > 0:
-                rlist, wList, xList = select(clientList, [], [], TIMEOUT)
-                for client in rlist:
+    def manageClientSocketMsg(self):
+        if len(self.clientSocketList) > 0:
+            rList, wList, xList = select(self.clientSocketList, [], [], TIMEOUT)
+            for clientSocketWithMsg in rList:
+                try:
+                    msgReceived:str = clientSocketWithMsg.recv(1024).decode()
+                    if msgReceived == Server.MSG_CLIENT_DISCONNECTION:
+                        logger.info(msg="Client disconnected: {}".format(clientSocketWithMsg))
+                        clientSocketWithMsg.close()
+                        self.clientSocketList.remove(clientSocketWithMsg)
+                    elif msgReceived == STOP_SERVER:
+                        self.loop = False
+                    else:
+                        logger.info(msg="Message received from the client {}:\n\t{}".format(clientSocketWithMsg, msgReceived))
+                except Exception as e:
+                    logger.error(msg="{} {}".format(e, clientSocketWithMsg))
                     try:
-                        msgReceived:str = client.recv(1024).decode()
-                        if msgReceived == MSG_CLIENT_DISCONNECTION:
-                            logger.info(msg="Client disconnected: {}".format(client))
-                            client.close()
-                            clientList.remove(client)
-                        elif msgReceived == STOP_SERVER:
-                            serverLoop = False
-                        else:
-                            logger.info(msg="Message received from the client {}:\n\t{}".format(client, msgReceived))
+                        logger.info(msg="Client disconnection: {}".format(clientSocketWithMsg))
+                        clientSocketWithMsg.close()
+                        self.clientSocketList.remove(clientSocketWithMsg)
                     except Exception as e:
-                        logger.error(msg="{} {}".format(e, client))
-                        try:
-                            client.close()
-                            clientList.remove(client)
-                        except Exception as e:
-                            logger.error(msg="{} {}".format(e, client))
+                        logger.error(msg="{} {}".format(e, clientSocketWithMsg))
 
-        for client in clientList:
-            client.send(STOP_SERVER.encode())
-            client.close()
-        clientList.clear()
-
-        logger.info(msg="Server shutdown {}".format(server))
-        server.close()
-    except Exception as e:
-        logger.error(msg=e)
+    def start(self):
         try:
-            for client in clientList:
-                client.send(STOP_SERVER.encode())
-                client.close()
-            clientList.clear()
-        finally:
-            logger.info(msg="Server shutdown {}".format(server))
-            server.close()
+            self.serverSocket:ServerSocket = ServerSocket("Laboratory")
+            logger.info(msg="Server ready {}".format(self.serverSocket))
+
+            self.clientSocketList:list[ClientSocket] = []
+            self.loop:bool = True
+            while self.loop:
+                self.manageNewConnection()
+                self.manageClientSocketMsg()
+
+    def stop(self):
+        for clientSocket in self.clientSocketList:
+            try:
+                logger.info(msg="Client disconnection: {}".format(clientSocket))
+                clientSocket.send(STOP_SERVER.encode())
+                clientSocket.close()
+            except Exception as e:
+                logger.error(msg="{} {}".format(e, clientSocket))
+        self.clientSocketList.clear()
+        logger.info(msg="Server shutdown {}".format(self.serverSocket))
+        self.serverSocket.close()
 
 
 if __name__ == "__main__":
     try:
-        startServer()
+        server:Server = Server()
+        server.start()
     except Exception as e:
         logger.error(msg=e)
+    finally:
+        server.stop()
