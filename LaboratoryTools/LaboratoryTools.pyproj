@@ -32,6 +32,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="laboratoryTools\network\resources.py" />
+    <Compile Include="laboratoryTools\network\socket.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="laboratoryTools\network\__init__.py" />
     <Compile Include="laboratoryTools\__init__.py">
       <SubType>Code</SubType>

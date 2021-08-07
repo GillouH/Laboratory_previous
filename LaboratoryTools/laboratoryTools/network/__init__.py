@@ -1,2 +1,3 @@
 from laboratoryTools.network.resources import TIMEOUT, STOP_SERVER
-from laboratoryTools.network.core import serverAddress, Socket, ServerSocket, ClientSocket
+from laboratoryTools.network.core import serverAddress
+from laboratoryTools.network.socket import Socket, ServerSocket, ClientSocket
