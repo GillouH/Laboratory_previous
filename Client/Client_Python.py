@@ -37,14 +37,14 @@ class ClientWindow(Tk):
         self.isConnected:bool = False
 
         self.nameTextVariable:StringVar = StringVar()
-        self.nameTextVariable.trace_add(mode="write", callback=self.updateConnectionButton)
+        self.nameTextVariable.trace_add(mode="write", callback=self.updateConnectionButtonState)
 
         self.portTextVariable:StringVar = StringVar()
-        self.portTextVariable.trace_add(mode="write", callback=self.updateConnectionButton)
+        self.portTextVariable.trace_add(mode="write", callback=self.updateConnectionButtonState)
             
         self.IPTextVariableList:list[StringVar] = [StringVar() for IPValue in serverAddress[0].split(sep=".")]
         for IPTextVariable in self.IPTextVariableList:
-            IPTextVariable.trace_add(mode="write", callback=self.updateConnectionButton)
+            IPTextVariable.trace_add(mode="write", callback=self.updateConnectionButtonState)
 
         self.inputTextVariable:StringVar = StringVar()
         self.inputTextVariable.trace_add(mode="write", callback=self.updateSendButtonState)
@@ -58,7 +58,7 @@ class ClientWindow(Tk):
     def isAbleToConnect(self)->bool:
         textVariableList = self.IPTextVariableList + [self.portTextVariable, self.nameTextVariable]
         return not self.isConnected and not False in list(map(lambda textVariable: textVariable.get() != "", textVariableList))
-    def updateConnectionButton(self, *paramList):
+    def updateConnectionButtonState(self, *paramList):
         self.connectButton.config(state=NORMAL if self.isAbleToConnect() else DISABLED)
 
     def isAbleToSend(self)->bool:
