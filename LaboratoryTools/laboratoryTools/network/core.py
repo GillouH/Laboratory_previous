@@ -18,6 +18,8 @@ def createSocket()->socket:
     return socket(family=AF_INET, type=SOCK_STREAM)
 
 class Socket(socket):
+    MSG_DISCONNECTION:str = ""
+
     def __init__(self, name:str=None, socketSrc:socket=None)->TypeError:
         # Make this class an bastract class
         if self.__class__ == Socket:

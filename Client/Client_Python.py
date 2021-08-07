@@ -1,6 +1,6 @@
 from tkinter import Tk, Widget, StringVar, Frame, Button, Label, Entry, Text, Scrollbar # Classes used
 from tkinter.font import Font
-from laboratoryTools.network import serverAddress, TIMEOUT, STOP_SERVER, ClientSocket
+from laboratoryTools.network import serverAddress, TIMEOUT, STOP_SERVER, Socket, ClientSocket
 from tkinter import NORMAL, DISABLED    # Widget State Constants
 from threading import Thread, get_ident
 from select import select
@@ -95,7 +95,7 @@ class ClientWindow(Tk):
                     msgReceived:str = socketWithMsg.recv(1024).decode()
                     addr:tuple[str,int] = socketWithMsg.getpeername()
                     self.displayMsg(msg="<<{}\n".format(msgReceived))
-                    if msgReceived in (STOP_SERVER, ""):
+                    if msgReceived in (STOP_SERVER, Socket.MSG_DISCONNECTION):
                         self.disconnection()
                 except ConnectionResetError:
                     self.disconnection()
