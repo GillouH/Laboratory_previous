@@ -14,11 +14,12 @@ def getIP()->str:
 IP:str = getIP()
 serverAddress:tuple[str,int] = (IP, PORT)
 
-def createSocket()->socket:
-    return socket(family=AF_INET, type=SOCK_STREAM)
-
 class Socket(socket):
     MSG_DISCONNECTION:str = ""
+
+    @classmethod
+    def createSocket(cls)->socket:
+        return socket(family=AF_INET, type=SOCK_STREAM)
 
     def __init__(self, name:str=None, socketSrc:socket=None)->TypeError:
         # Make this class an bastract class
@@ -26,7 +27,7 @@ class Socket(socket):
             raise TypeError("Can't instantiate abstract class {}".format(self.__class__.__qualname__))
         else:
             if socketSrc is None:
-                socketSrc = createSocket()
+                socketSrc = Socket.createSocket()
             super().__init__(family=socketSrc.family, type=socketSrc.type, proto=socketSrc.proto, fileno=dup(socketSrc.fileno()))
             self.name:str = name
 
