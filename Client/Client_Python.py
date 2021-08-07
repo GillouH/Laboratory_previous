@@ -61,12 +61,12 @@ class ClientWindow(Tk):
     def isAbleToConnect(self)->bool:
         textVariableList = self.IPTextVariableList + [self.portTextVariable, self.nameTextVariable]
         return not self.isConnected and not False in list(map(lambda textVariable: textVariable.get() != "", textVariableList))
-    def updateConnectionButtonState(self, *paramList):
+    def updateConnectionButtonState(self, *paramList, **paramDict):
         self.connectButton.config(state=NORMAL if self.isAbleToConnect() else DISABLED)
 
     def isAbleToSend(self)->bool:
         return self.isConnected and self.inputTextVariable.get() != ""
-    def updateSendButtonState(self, *paramList):
+    def updateSendButtonState(self, *paramList, **paramDict):
         self.sendButton.config(state=NORMAL if self.isAbleToSend() else DISABLED)
 
     def setTitle(self, info:str):
@@ -209,7 +209,7 @@ class ClientWindow(Tk):
         self.inputTextEntry.grid(row=0, column=0)
         self.sendButton = Button(master=frame, text="Send", command=self.sendMessage, width=buttonWidth, font=self.FONT, state=DISABLED)
         self.sendButton.grid(row=0, column=1)
-        self.inputTextEntry.bind(sequence="<Return>", func=lambda event:self.sendButton.invoke())
+        self.inputTextEntry.bind(sequence="<Return>", func=lambda *paramList, **paramDict:self.sendButton.invoke())
         
     def createMessageFrame(self, master:Widget, row:int, column:int):
         frame:Frame = self.createFrame(master=master, row=row, column=column)
