@@ -11,6 +11,7 @@ from tkinter import VERTICAL    # Scrollbar Direction Constant
 from laboratoryTools.logging import logger
 from os.path import isfile
 from json import loads, dumps
+from typing import Callable
 
 
 class ClientWindow(Tk):
@@ -27,7 +28,7 @@ class ClientWindow(Tk):
     NAME:str = "NAME"
     MEMORY_JSON_KEY:dict[str,str] = {}
     for key in [IP, PORT, NAME]:
-        MEMORY_JSON_KEY[key] = "_".join(["MEMORY_JSON_KEY", key])
+        MEMORY_JSON_KEY[key]:str = "_".join(["MEMORY_JSON_KEY", key])
 
     MAX_PORT:int = 65535
     MAX_IP:int = 255
@@ -59,7 +60,7 @@ class ClientWindow(Tk):
         self.restoreData()
 
     def isAbleToConnect(self)->bool:
-        textVariableList = self.IPTextVariableList + [self.portTextVariable, self.nameTextVariable]
+        textVariableList:list[StringVar] = self.IPTextVariableList + [self.portTextVariable, self.nameTextVariable]
         return not self.isConnected and not False in list(map(lambda textVariable: textVariable.get() != "", textVariableList))
     def updateConnectionButtonState(self, *paramList, **paramDict):
         self.connectButton.config(state=NORMAL if self.isAbleToConnect() else DISABLED)
@@ -145,7 +146,7 @@ class ClientWindow(Tk):
     # Callbacks to check inputs for PORT/IP entries
     def checkInputIsInt(self, input:str, max:int)->bool:
         try:
-            number = int(input)
+            number:int = int(input)
             return number >= 0 and number <= max
         except Exception as e:
             logger.error(msg=e)
@@ -191,7 +192,7 @@ class ClientWindow(Tk):
         frame:Frame = self.createFrame(master=master, row=row, column=column)
         self.showText:Text = Text(master=frame, width=width-1, height=10, font=self.FONT, state=DISABLED)
         self.showText.grid(row=0, column=0)
-        scroll = Scrollbar(master=frame, orient=VERTICAL, command=self.showText.yview)
+        scroll:Scrollbar = Scrollbar(master=frame, orient=VERTICAL, command=self.showText.yview)
         scroll.grid(row=0, column=1, sticky=NS)
         self.showText.config(yscrollcommand=scroll.set)
 
@@ -207,7 +208,7 @@ class ClientWindow(Tk):
         buttonWidth:int = 5
         self.inputTextEntry:Entry = Entry(master=frame, textvariable=self.inputTextVariable, width=width-buttonWidth, font=self.FONT)
         self.inputTextEntry.grid(row=0, column=0)
-        self.sendButton = Button(master=frame, text="Send", command=self.sendMessage, width=buttonWidth, font=self.FONT, state=DISABLED)
+        self.sendButton:Button = Button(master=frame, text="Send", command=self.sendMessage, width=buttonWidth, font=self.FONT, state=DISABLED)
         self.sendButton.grid(row=0, column=1)
         self.inputTextEntry.bind(sequence="<Return>", func=lambda *paramList, **paramDict:self.sendButton.invoke())
         
@@ -244,14 +245,14 @@ class ClientWindow(Tk):
                 logger.error(msg=e)
                 self.restoreDefaultData()
                 return
-            keySetDefaultList = [
+            keySetDefaultList:list[str,Callable[str,None],Callable[None,None]] = [
                 (ClientWindow.IP, self.setIP, self.restoreDefaultIP),
                 (ClientWindow.PORT, self.portTextVariable.set, self.restoreDefaultPort),
                 (ClientWindow.NAME, self.nameTextVariable.set, self.restoreDefaultName)
             ]
             for jsonKey, setMethod, defaultMethod in keySetDefaultList:
                 try:
-                    value = data[ClientWindow.MEMORY_JSON_KEY[jsonKey]]
+                    value:str = data[ClientWindow.MEMORY_JSON_KEY[jsonKey]]
                     setMethod(value=value)
                 except Exception as e:
                     logger.error(msg=e)

@@ -18,7 +18,7 @@ def createSocket()->socket:
     return socket(family=AF_INET, type=SOCK_STREAM)
 
 class Socket(socket):
-    def __init__(self, name:str=None, socketSrc:socket=None):
+    def __init__(self, name:str=None, socketSrc:socket=None)->TypeError:
         # Make this class an bastract class
         if self.__class__ == Socket:
             raise TypeError("Can't instantiate abstract class {}".format(self.__class__.__qualname__))
@@ -29,10 +29,10 @@ class Socket(socket):
             self.name:str = name
 
     # méthode abstraite
-    def getIPPort(self):
+    def getIPPort(self)->NotImplementedError:
         raise NotImplementedError()
 
-    def __repr__(self):
+    def __repr__(self)->str:
         """Wrap __repr__() to reveal the real class name and socket
         address(es).
         """
@@ -47,13 +47,13 @@ class Socket(socket):
             )
         if not self._closed:
             try:
-                laddr = self.getsockname()
+                laddr:tuple[str,int] = self.getsockname()
                 if laddr:
                     s += ", laddr={}".format(laddr)
             except error:
                 pass
             try:
-                raddr = self.getpeername()
+                raddr:tuple[str,int] = self.getpeername()
                 if raddr:
                     s += ", raddr={}".format(raddr)
             except error:
@@ -61,8 +61,8 @@ class Socket(socket):
         s += '>'
         return s
 
-    def __str__(self):
-        s = "["
+    def __str__(self)->str:
+        s:str = "["
         s += "{}".format("{} - ".format(self.name) if self.name is not None else "")
         s += "{}:{}".format(*self.getIPPort())
         s += "]"
@@ -74,11 +74,11 @@ class ServerSocket(Socket):
         self.bind((ip, port))
         self.listen(5)
 
-    def getIPPort(self):
+    def getIPPort(self)->tuple[str,int]:
         return self.getsockname()
 
 class ClientSocket(Socket):    
-    def getIPPort(self):
+    def getIPPort(self)->tuple[str,int]:
         return self.getpeername()
 
 if __name__ == "__main__":
