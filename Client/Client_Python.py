@@ -104,7 +104,7 @@ class ClientWindow(Tk):
             self.setTitle(info=ClientWindow.CONNECTING)
 
             self.clientSocket:ClientSocket = ClientSocket(name=self.nameTextVariable.get())
-            self.clientSocket.connect((self.ip, self.port))
+            self.clientSocket.connect((self.getIP(), int(self.portTextVariable.get())))
             
             self.connectButton.config(text=ClientWindow.DISCONNECTION, command=self.disconnection, state=NORMAL)
             self.setTitle(info=ClientWindow.CONNECTED)
@@ -136,8 +136,6 @@ class ClientWindow(Tk):
         self.updateSendButtonState()
 
     def connection(self):
-        self.ip:str = self.getIP()
-        self.port:int = int(self.portTextVariable.get())
         thread:Thread = Thread(target=self.connectionThreadRunMethod)
         thread.start()
 
