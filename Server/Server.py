@@ -8,7 +8,7 @@ class Server:
 
     def manageNewConnection(self):
         rList, wList, xList = select([self.serverSocket], [], [], TIMEOUT)
-        for socketWaitingForConnection in rlist:
+        for socketWaitingForConnection in rList:
             socketConnected, addr = socketWaitingForConnection.accept()
             clientSocket:ClientSocket = ClientSocket(socketSrc=socketConnected)
             logger.info(msg="Client connected {}".format(clientSocket))
@@ -38,15 +38,14 @@ class Server:
                         logger.error(msg="{} {}".format(e, clientSocketWithMsg))
 
     def start(self):
-        try:
-            self.serverSocket:ServerSocket = ServerSocket("Laboratory")
-            logger.info(msg="Server ready {}".format(self.serverSocket))
+        self.serverSocket:ServerSocket = ServerSocket("Laboratory")
+        logger.info(msg="Server ready {}".format(self.serverSocket))
 
-            self.clientSocketList:list[ClientSocket] = []
-            self.loop:bool = True
-            while self.loop:
-                self.manageNewConnection()
-                self.manageClientSocketMsg()
+        self.clientSocketList:list[ClientSocket] = []
+        self.loop:bool = True
+        while self.loop:
+            self.manageNewConnection()
+            self.manageClientSocketMsg()
 
     def stop(self):
         for clientSocket in self.clientSocketList:
