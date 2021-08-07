@@ -115,7 +115,7 @@ class ClientWindow(Tk):
             self.listenServerThread.start()
             self.inputTextEntry.focus()
         except Exception as e:
-            logger.error(e)
+            logger.error(msg=e)
             for widget in self.serverConfigWidget:
                 widget.config(state=NORMAL)
             self.connectButton.config(text=ClientWindow.CONNECTION, state=NORMAL)
@@ -147,7 +147,7 @@ class ClientWindow(Tk):
             number = int(input)
             return number >= 0 and number <= max
         except Exception as e:
-            logger.error(e)
+            logger.error(msg=e)
             return input == ""
     def checkPortInput(self, input:str)->bool:
         return self.checkInputIsInt(input=input, max=65535)

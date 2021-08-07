@@ -38,7 +38,7 @@ class Server:
                         logger.error(msg="{} {}".format(e, clientSocketWithMsg))
 
     def start(self):
-        self.serverSocket:ServerSocket = ServerSocket("Laboratory")
+        self.serverSocket:ServerSocket = ServerSocket(name="Laboratory")
         logger.info(msg="Server ready {}".format(self.serverSocket))
 
         self.clientSocketList:list[ClientSocket] = []
