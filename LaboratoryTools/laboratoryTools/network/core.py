@@ -13,17 +13,9 @@ def getIP()->str:
 
 IP:str = getIP()
 serverAddress:tuple[str,int] = (IP, PORT)
-serverAddressStr:str = "{}:{}".format(*serverAddress)
 
 def createSocket()->socket:
     return socket(family=AF_INET, type=SOCK_STREAM)
-
-def checkInput(prompt:str="")->str:
-    text:str = input(prompt)
-    while text == "":
-        print("Please, enter a non empty value.")
-        text = input(prompt)
-    return text
 
 class Socket(socket):
     def __init__(self, name:str=None, socketSrc:socket=None):
