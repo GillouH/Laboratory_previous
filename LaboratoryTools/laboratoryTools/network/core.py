@@ -41,9 +41,9 @@ class Socket(socket):
             "close" if self._closed else "open",
             " name={}".format(self.name) if self.name is not None else "",
             self.fileno(),
-            str(self.family),
-            str(self.type),
-            str(self.proto)
+            str(object=self.family),
+            str(object=self.type),
+            str(object=self.proto)
             )
         if not self._closed:
             try:

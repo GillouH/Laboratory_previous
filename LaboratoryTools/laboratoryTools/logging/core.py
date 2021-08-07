@@ -10,9 +10,9 @@ streamHandler.setLevel(level=DEBUG)
 streamHandler.setFormatter(fmt=Formatter(fmt="{levelname} :: {funcName}(...) :: {message}", style="{"))
 
 dirName = "logs"
-if not isdir(dirName):
-    makedirs(dirName)
 fileHandler = FileHandler(filename="/".join([dirName, "info.log"]), mode="a", encoding=ENCODING)
+if not isdir(s=dirName):
+    makedirs(name=dirName)
 fileHandler.setLevel(level=INFO)
 fileHandler.setFormatter(fmt=Formatter(fmt="{asctime} :: {pathname} :: {levelname} :: {funcName}(...) :: {message}", style="{"))
 
