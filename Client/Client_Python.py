@@ -266,6 +266,11 @@ class ClientWindow(Tk):
         with open(file=ClientWindow.MEMORY_FILE_NAME, mode="w") as file:
             file.write(dumps(obj=data, indent=4, ensure_ascii=False))
 
+    def destroy(self):
+        if self.isConnected:
+            self.disconnection()
+        return super().destroy()
+
 
 if __name__ == "__main__":
     try:
