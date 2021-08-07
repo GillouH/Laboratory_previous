@@ -28,6 +28,9 @@ class ClientWindow(Tk):
     MEMORY_JSON_KEY:dict[str,str] = {}
     for key in [IP, PORT, NAME]:
         MEMORY_JSON_KEY[key] = "_".join(["MEMORY_JSON_KEY", key])
+
+    MAX_PORT:int = 65535
+    MAX_IP:int = 255
     
     def __init__(self):
         super().__init__()
@@ -148,14 +151,14 @@ class ClientWindow(Tk):
             logger.error(msg=e)
             return input == ""
     def checkPortInput(self, input:str)->bool:
-        return self.checkInputIsInt(input=input, max=65535)
+        return self.checkInputIsInt(input=input, max=ClientWindow.MAX_PORT)
     def checkIPInput(self, input:str)->bool:
-        return self.checkInputIsInt(input=input, max=255)
+        return self.checkInputIsInt(input=input, max=ClientWindow.MAX_IP)
 
     def createPortFrame(self, master:Widget, side:str):
         frame:Frame = self.createFrame(master=master, side=side, padx=50)
         Label(master=frame, text="PORT: ", font=self.FONT).grid(row=0, column=0)
-        entry:Entry = Entry(master=frame, textvariable=self.portTextVariable, width=5, font=self.FONT, justify=RIGHT)
+        entry:Entry = Entry(master=frame, textvariable=self.portTextVariable, width=len(str(object=ClientWindow.MAX_PORT)), font=self.FONT, justify=RIGHT)
         entry.grid(row=0, column=1)
         entry.config(validate="key", validatecommand=(self.register(func=self.checkPortInput), "%P"))
         self.serverConfigWidget.append(entry)
@@ -163,8 +166,9 @@ class ClientWindow(Tk):
     def createIPFrame(self, master:Widget, side:str):
         frame:Frame = self.createFrame(master=master, side=side)
         Label(master=frame, text="IP: ", font=self.FONT).grid(row=0, column=0)
+        width:int = len(str(object=ClientWindow.MAX_IP))
         for i in range(len(self.IPTextVariableList)):
-            entry:Entry = Entry(master=frame, textvariable=self.IPTextVariableList[i], width=3, font=self.FONT, justify=RIGHT)
+            entry:Entry = Entry(master=frame, textvariable=self.IPTextVariableList[i], width=width, font=self.FONT, justify=RIGHT)
             entry.grid(row=0, column=1+i*2)
             entry.config(validate="key", validatecommand=(self.register(func=self.checkIPInput), "%P"))
             self.serverConfigWidget.append(entry)
