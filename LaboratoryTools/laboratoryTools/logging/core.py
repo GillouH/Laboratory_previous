@@ -1,4 +1,3 @@
-from laboratoryTools import ENCODING
 from logging import StreamHandler, Formatter, FileHandler
 from logging import DEBUG, INFO
 from os.path import isdir
@@ -12,7 +11,7 @@ streamHandler.setFormatter(fmt=Formatter(fmt="{levelname} :: {funcName}(...) :: 
 dirName:"str" = "logs"
 if not isdir(s=dirName):
     makedirs(name=dirName)
-fileHandler:"FileHandler" = FileHandler(filename="/".join([dirName, "info.log"]), mode="a", encoding=ENCODING)
+fileHandler:"FileHandler" = FileHandler(filename="/".join([dirName, "info.log"]), mode="a", encoding="utf-8")
 fileHandler.setLevel(level=INFO)
 fileHandler.setFormatter(fmt=Formatter(fmt="{asctime} :: {pathname} :: {levelname} :: {funcName}(...) :: {message}", style="{"))
 
