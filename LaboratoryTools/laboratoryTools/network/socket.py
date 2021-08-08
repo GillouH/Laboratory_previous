@@ -4,13 +4,13 @@ from laboratoryTools.network.resources import PORT
 
 
 class Socket(socket):
-    MSG_DISCONNECTION:str = ""
+    MSG_DISCONNECTION:"str" = ""
 
     @classmethod
-    def createSocket(cls)->socket:
+    def createSocket(cls)->"socket":
         return socket(family=AF_INET, type=SOCK_STREAM)
 
-    def __init__(self, name:str=None, socketSrc:socket=None)->TypeError:
+    def __init__(self, name:"str"=None, socketSrc:"socket"=None)->"TypeError":
         # Make this class an bastract class
         if self.__class__ == Socket:
             raise TypeError("Can't instantiate abstract class {}".format(self.__class__.__qualname__))
@@ -18,17 +18,17 @@ class Socket(socket):
             if socketSrc is None:
                 socketSrc = Socket.createSocket()
             super().__init__(family=socketSrc.family, type=socketSrc.type, proto=socketSrc.proto, fileno=dup(socketSrc.fileno()))
-            self.name:str = name
+            self.name:"str" = name
 
     # méthode abstraite
-    def getIPPort(self)->NotImplementedError:
+    def getIPPort(self)->"NotImplementedError":
         raise NotImplementedError()
 
-    def __repr__(self)->str:
+    def __repr__(self)->"str":
         """Wrap __repr__() to reveal the real class name and socket
         address(es).
         """
-        s:str = "<{} [{}]{} fd={}, family={}, type={}, proto={}".format(
+        s:"str" = "<{} [{}]{} fd={}, family={}, type={}, proto={}".format(
             self.__class__.__qualname__,
             "close" if self._closed else "open",
             "" if self.name is None else " name={}".format(self.name),
@@ -39,13 +39,13 @@ class Socket(socket):
             )
         if not self._closed:
             try:
-                laddr:tuple[str,int] = self.getsockname()
+                laddr:"(str,int)" = self.getsockname()
                 if laddr:
                     s += ", laddr={}".format(laddr)
             except error:
                 pass
             try:
-                raddr:tuple[str,int] = self.getpeername()
+                raddr:"(str,int)" = self.getpeername()
                 if raddr:
                     s += ", raddr={}".format(raddr)
             except error:
@@ -53,24 +53,24 @@ class Socket(socket):
         s += '>'
         return s
 
-    def __str__(self)->str:
-        s:str = "[{}{}]".format(
+    def __str__(self)->"str":
+        s:"str" = "[{}{}]".format(
             "" if self.name is None else "{} - ".format(self.name),
             "{}:{}".format(*self.getIPPort()),
         )
         return s
 
 class ServerSocket(Socket):
-    def __init__(self, name:str=None, ip:str=IP, port:int=PORT):
+    def __init__(self, name:"str"=None, ip:"str"=IP, port:"int"=PORT):
         super().__init__(name=name)
         self.bind((ip, port))
         self.listen(5)
 
-    def getIPPort(self)->tuple[str,int]:
+    def getIPPort(self)->"(str,int)":
         return self.getsockname()
 
 class ClientSocket(Socket):    
-    def getIPPort(self)->tuple[str,int]:
+    def getIPPort(self)->"(str,int)":
         return self.getpeername()
 
 

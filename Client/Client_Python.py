@@ -1,4 +1,4 @@
-from tkinter import Tk, Widget, StringVar, Frame, Button, Label, Entry, Text, Scrollbar # Classes used
+from tkinter import Tk, StringVar, Frame, Button, Label, Entry, Text, Scrollbar # Classes used
 from tkinter.font import Font
 from laboratoryTools.network import serverAddress, TIMEOUT, STOP_SERVER, Socket, ClientSocket
 from tkinter import NORMAL, DISABLED    # Widget State Constants
@@ -11,46 +11,45 @@ from tkinter import VERTICAL    # Scrollbar Direction Constant
 from laboratoryTools.logging import logger
 from os.path import isfile
 from json import loads, dumps
-from typing import Callable
 
 
 class ClientWindow(Tk):
-    BASE_TITLE:str = "Client"
-    CONNECTION:str = "Connection"
-    CONNECTING:str = "Connecting..."
-    CONNECTED:str = "Connected"
-    DISCONNECTION:str = "Disconnection"
-    DISCONNECTED:str = "Disconnected"
+    BASE_TITLE:"str" = "Client"
+    CONNECTION:"str" = "Connection"
+    CONNECTING:"str" = "Connecting..."
+    CONNECTED:"str" = "Connected"
+    DISCONNECTION:"str" = "Disconnection"
+    DISCONNECTED:"str" = "Disconnected"
 
-    MEMORY_FILE_NAME:str = "memory.json"
-    IP:str = "IP"
-    PORT:str = "PORT"
-    NAME:str = "NAME"
-    MEMORY_JSON_KEY:dict[str,str] = {}
+    MEMORY_FILE_NAME:"str" = "memory.json"
+    IP:"str" = "IP"
+    PORT:"str" = "PORT"
+    NAME:"str" = "NAME"
+    MEMORY_JSON_KEY:"{str:str}" = {}
     for key in [IP, PORT, NAME]:
-        MEMORY_JSON_KEY[key]:str = "_".join(["MEMORY_JSON_KEY", key])
+        MEMORY_JSON_KEY[key]:"str" = "_".join(["MEMORY_JSON_KEY", key])
 
-    MAX_PORT:int = 65535
-    MAX_IP:int = 255
+    MAX_PORT:"int" = 65535
+    MAX_IP:"int" = 255
     
     def __init__(self):
         super().__init__()
 
-        self.FONT:Font = Font(root=self, size=15)
-        self.serverConfigWidget:list[Widget] = []
-        self.isConnected:bool = False
+        self.FONT:"Font" = Font(root=self, size=15)
+        self.serverConfigWidget:"[Widget]" = []
+        self.isConnected:"bool" = False
 
-        self.nameTextVariable:StringVar = StringVar()
+        self.nameTextVariable:"StringVar" = StringVar()
         self.nameTextVariable.trace_add(mode="write", callback=self.updateConnectionButtonState)
 
-        self.portTextVariable:StringVar = StringVar()
+        self.portTextVariable:"StringVar" = StringVar()
         self.portTextVariable.trace_add(mode="write", callback=self.updateConnectionButtonState)
-            
-        self.IPTextVariableList:list[StringVar] = [StringVar() for IPValue in serverAddress[0].split(sep=".")]
+
+        self.IPTextVariableList:"[StringVar]" = [StringVar() for IPValue in serverAddress[0].split(sep=".")]
         for IPTextVariable in self.IPTextVariableList:
             IPTextVariable.trace_add(mode="write", callback=self.updateConnectionButtonState)
 
-        self.inputTextVariable:StringVar = StringVar()
+        self.inputTextVariable:"StringVar" = StringVar()
         self.inputTextVariable.trace_add(mode="write", callback=self.updateSendButtonState)
 
         self.setTitle(info=ClientWindow.DISCONNECTED)
@@ -59,29 +58,29 @@ class ClientWindow(Tk):
 
         self.restoreData()
 
-    def isAbleToConnect(self)->bool:
-        textVariableList:list[StringVar] = self.IPTextVariableList + [self.portTextVariable, self.nameTextVariable]
+    def isAbleToConnect(self)->"bool":
+        textVariableList:"[StringVar]" = self.IPTextVariableList + [self.portTextVariable, self.nameTextVariable]
         return not self.isConnected and not False in list(map(lambda textVariable: textVariable.get() != "", textVariableList))
     def updateConnectionButtonState(self, *paramList, **paramDict):
         self.connectButton.config(state=NORMAL if self.isAbleToConnect() else DISABLED)
 
-    def isAbleToSend(self)->bool:
+    def isAbleToSend(self)->"bool":
         return self.isConnected and self.inputTextVariable.get() != ""
     def updateSendButtonState(self, *paramList, **paramDict):
         self.sendButton.config(state=NORMAL if self.isAbleToSend() else DISABLED)
 
-    def setTitle(self, info:str):
+    def setTitle(self, info:"str"):
         self.title(string="{} - {}".format(ClientWindow.BASE_TITLE, info))
 
-    def createFrame(self, row:int=None, column:int=None, sticky:str=None, side:str=None, padx:int=None, *paramList, **paramDict)->Frame:
-        frame:Frame = Frame(*paramList, **paramDict)
+    def createFrame(self, row:"int"=None, column:"int"=None, sticky:"str"=None, side:"str"=None, padx:"int"=None, *paramList, **paramDict)->"Frame":
+        frame:"Frame" = Frame(*paramList, **paramDict)
         if side is not None or padx is not None:
             frame.pack(side=side, padx=padx)
         else:
             frame.grid(row=row, column=column, sticky=sticky, padx=padx)
         return frame
 
-    def displayMsg(self, msg:str):
+    def displayMsg(self, msg:"str"):
         self.showText.config(state=NORMAL)
         self.showText.insert(index=END, chars=msg)
         self.showText.config(state=DISABLED)
@@ -92,8 +91,8 @@ class ClientWindow(Tk):
             socketList, wList, xList = select([self.clientSocket], [], [], TIMEOUT)
             for socketWithMsg in socketList:
                 try:
-                    msgReceived:str = socketWithMsg.recv(1024).decode()
-                    addr:tuple[str,int] = socketWithMsg.getpeername()
+                    msgReceived:"str" = socketWithMsg.recv(1024).decode()
+                    addr:"(str,int)" = socketWithMsg.getpeername()
                     self.displayMsg(msg="<<{}\n".format(msgReceived))
                     if msgReceived in (STOP_SERVER, Socket.MSG_DISCONNECTION):
                         self.disconnection()
@@ -107,15 +106,15 @@ class ClientWindow(Tk):
             self.connectButton.config(text=ClientWindow.CONNECTING, state=DISABLED)
             self.setTitle(info=ClientWindow.CONNECTING)
 
-            self.clientSocket:ClientSocket = ClientSocket(name=self.nameTextVariable.get())
+            self.clientSocket:"ClientSocket" = ClientSocket(name=self.nameTextVariable.get())
             self.clientSocket.connect((self.getIP(), int(self.portTextVariable.get())))
-            
+
             self.connectButton.config(text=ClientWindow.DISCONNECTION, command=self.disconnection, state=NORMAL)
             self.setTitle(info=ClientWindow.CONNECTED)
             self.isConnected = True
             self.updateSendButtonState()
 
-            self.listenServerThread:Thread = Thread(target=self.listenServerThreadRunMethod)
+            self.listenServerThread:"Thread" = Thread(target=self.listenServerThreadRunMethod)
             self.listenServerThread.start()
             self.inputTextEntry.focus()
         except Exception as e:
@@ -140,88 +139,88 @@ class ClientWindow(Tk):
         self.updateSendButtonState()
 
     def connection(self):
-        thread:Thread = Thread(target=self.connectionThreadRunMethod)
+        thread:"Thread" = Thread(target=self.connectionThreadRunMethod)
         thread.start()
 
     # Callbacks to check inputs for PORT/IP entries
-    def checkInputIsInt(self, input:str, max:int)->bool:
+    def checkInputIsInt(self, input:"str", max:"int")->"bool":
         try:
-            number:int = int(input)
+            number:"int" = int(input)
             return number >= 0 and number <= max
         except Exception as e:
             logger.error(msg=e)
             return input == ""
-    def checkPortInput(self, input:str)->bool:
+    def checkPortInput(self, input:"str")->"bool":
         return self.checkInputIsInt(input=input, max=ClientWindow.MAX_PORT)
-    def checkIPInput(self, input:str)->bool:
+    def checkIPInput(self, input:"str")->"bool":
         return self.checkInputIsInt(input=input, max=ClientWindow.MAX_IP)
 
-    def createPortFrame(self, master:Widget, side:str):
-        frame:Frame = self.createFrame(master=master, side=side, padx=50)
+    def createPortFrame(self, master:"Widget", side:"str"):
+        frame:"Frame" = self.createFrame(master=master, side=side, padx=50)
         Label(master=frame, text="PORT: ", font=self.FONT).grid(row=0, column=0)
-        entry:Entry = Entry(master=frame, textvariable=self.portTextVariable, width=len(str(object=ClientWindow.MAX_PORT)), font=self.FONT, justify=RIGHT)
+        entry:"Entry" = Entry(master=frame, textvariable=self.portTextVariable, width=len(str(object=ClientWindow.MAX_PORT)), font=self.FONT, justify=RIGHT)
         entry.grid(row=0, column=1)
         entry.config(validate="key", validatecommand=(self.register(func=self.checkPortInput), "%P"))
         self.serverConfigWidget.append(entry)
 
-    def createIPFrame(self, master:Widget, side:str):
-        frame:Frame = self.createFrame(master=master, side=side)
+    def createIPFrame(self, master:"Widget", side:"str"):
+        frame:"Frame" = self.createFrame(master=master, side=side)
         Label(master=frame, text="IP: ", font=self.FONT).grid(row=0, column=0)
-        width:int = len(str(object=ClientWindow.MAX_IP))
+        width:"int" = len(str(object=ClientWindow.MAX_IP))
         for i in range(len(self.IPTextVariableList)):
-            entry:Entry = Entry(master=frame, textvariable=self.IPTextVariableList[i], width=width, font=self.FONT, justify=RIGHT)
+            entry:"Entry" = Entry(master=frame, textvariable=self.IPTextVariableList[i], width=width, font=self.FONT, justify=RIGHT)
             entry.grid(row=0, column=1+i*2)
             entry.config(validate="key", validatecommand=(self.register(func=self.checkIPInput), "%P"))
             self.serverConfigWidget.append(entry)
             if i != len(self.IPTextVariableList)-1:
                 Label(master=frame, text=".", font=self.FONT).grid(row=0, column=1+i*2+1)
 
-    def createServerFrame(self, master:Widget, row:int, column:int):
-        frame:Frame = self.createFrame(master=master, sticky=NSEW)
+    def createServerFrame(self, master:"Widget", row:"int", column:"int"):
+        frame:"Frame" = self.createFrame(master=master, sticky=NSEW)
         Label(master=frame, text="Name: ", font=self.FONT).pack(side=LEFT)
-        nameEntry:Entry = Entry(master=frame, textvariable=self.nameTextVariable, width=10, font=self.FONT, justify=RIGHT)
+        nameEntry:"Entry" = Entry(master=frame, textvariable=self.nameTextVariable, width=10, font=self.FONT, justify=RIGHT)
         nameEntry.pack(side=LEFT)
         self.serverConfigWidget.append(nameEntry)
-        buttonWidth:int = max(len(ClientWindow.CONNECTION), len(ClientWindow.CONNECTING), len(ClientWindow.DISCONNECTION))
-        self.connectButton:Button = Button(master=frame, text=ClientWindow.CONNECTION, width=buttonWidth, command=self.connection, font=self.FONT)
+        buttonWidth:"int" = max(len(ClientWindow.CONNECTION), len(ClientWindow.CONNECTING), len(ClientWindow.DISCONNECTION))
+        self.connectButton:"Button" = Button(master=frame, text=ClientWindow.CONNECTION, width=buttonWidth, command=self.connection, font=self.FONT)
         self.connectButton.pack(side=RIGHT)
         self.createPortFrame(master=frame, side=RIGHT)
         self.createIPFrame(master=frame, side=RIGHT)
 
-    def createShowTextFrame(self, master:Widget, width:int, row:int, column:int):
-        frame:Frame = self.createFrame(master=master, row=row, column=column)
-        self.showText:Text = Text(master=frame, width=width-1, height=10, font=self.FONT, state=DISABLED)
+    def createShowTextFrame(self, master:"Widget", width:"int", row:"int", column:"int"):
+        frame:"Frame" = self.createFrame(master=master, row=row, column=column)
+        self.showText:"Text" = Text(master=frame, width=width-1, height=10, font=self.FONT, state=DISABLED)
         self.showText.grid(row=0, column=0)
-        scroll:Scrollbar = Scrollbar(master=frame, orient=VERTICAL, command=self.showText.yview)
+        scroll:"Scrollbar" = Scrollbar(master=frame, orient=VERTICAL, command=self.showText.yview)
         scroll.grid(row=0, column=1, sticky=NS)
         self.showText.config(yscrollcommand=scroll.set)
 
     def sendMessage(self):
         if self.isAbleToSend():
-            msgToSend:str = self.inputTextVariable.get()
+            msgToSend:"str" = self.inputTextVariable.get()
             self.clientSocket.send(msgToSend.encode())
             self.displayMsg(msg=">>{}\n".format(msgToSend))
             self.inputTextVariable.set(value="")
 
-    def createInputTextFrame(self, master:Widget, width:int, row:int, column:int):
-        frame:Frame = self.createFrame(master=master, row=row, column=column)
-        buttonWidth:int = 5
-        self.inputTextEntry:Entry = Entry(master=frame, textvariable=self.inputTextVariable, width=width-buttonWidth, font=self.FONT)
+    def createInputTextFrame(self, master:"Widget", width:"int", row:"int", column:"int"):
+        frame:"Frame" = self.createFrame(master=master, row=row, column=column)
+        buttonWidth:"int" = 5
+        self.inputTextEntry:"Entry" = Entry(master=frame, textvariable=self.inputTextVariable, width=width-buttonWidth, font=self.FONT)
         self.inputTextEntry.grid(row=0, column=0)
-        self.sendButton:Button = Button(master=frame, text="Send", command=self.sendMessage, width=buttonWidth, font=self.FONT, state=DISABLED)
+        self.sendButton:"Button" = Button(master=frame, text="Send", command=self.sendMessage, width=buttonWidth, font=self.FONT, state=DISABLED)
         self.sendButton.grid(row=0, column=1)
         self.inputTextEntry.bind(sequence="<Return>", func=lambda *paramList, **paramDict:self.sendButton.invoke())
-        
-    def createMessageFrame(self, master:Widget, row:int, column:int):
-        frame:Frame = self.createFrame(master=master, row=row, column=column)
-        width:int = 75
+
+    def createMessageFrame(self, master:"Widget", row:"int", column:"int"):
+        frame:"Frame" = self.createFrame(master=master, row=row, column=column)
+        width:"int" = 75
         self.createShowTextFrame(master=frame, width=width, row=0, column=0)
         self.createInputTextFrame(master=frame, width=width, row=1, column=0)
 
-    def getIP(self)->str:
+    def getIP(self)->"str":
         return ".".join(textVariable.get() for textVariable in self.IPTextVariableList)
-    def setIP(self, value:str):
-        IPValueList:list[str] = value.split(sep=".")
+    def setIP(self, value:"str"):
+        IPValueList:"[str]" = value.split(sep=".")
         for i in range(len(IPValueList)):
             self.IPTextVariableList[i].set(value=IPValueList[i])
     def restoreDefaultIP(self):
@@ -232,27 +231,27 @@ class ClientWindow(Tk):
         self.nameTextVariable.set(value="")
     def restoreDefaultData(self):
         self.restoreDefaultIP()
-        self.restoreDefaultPort()  
+        self.restoreDefaultPort()
         self.restoreDefaultName()
 
     def restoreData(self):
         if isfile(path=ClientWindow.MEMORY_FILE_NAME):
             with open(file=ClientWindow.MEMORY_FILE_NAME, mode="r") as file:
-                content:str = file.read()
+                content:"str" = file.read()
             try:
-                data:dict[str,str] = loads(s=content)
+                data:"{str:str}" = loads(s=content)
             except Exception as e:
                 logger.error(msg=e)
                 self.restoreDefaultData()
                 return
-            keySetDefaultList:list[str,Callable[str,None],Callable[None,None]] = [
+            keySetDefaultList:"[(str,method(str),method())]" = [
                 (ClientWindow.IP, self.setIP, self.restoreDefaultIP),
                 (ClientWindow.PORT, self.portTextVariable.set, self.restoreDefaultPort),
                 (ClientWindow.NAME, self.nameTextVariable.set, self.restoreDefaultName)
             ]
             for jsonKey, setMethod, defaultMethod in keySetDefaultList:
                 try:
-                    value:str = data[ClientWindow.MEMORY_JSON_KEY[jsonKey]]
+                    value:"str" = data[ClientWindow.MEMORY_JSON_KEY[jsonKey]]
                     setMethod(value=value)
                 except Exception as e:
                     logger.error(msg=e)
@@ -261,7 +260,7 @@ class ClientWindow(Tk):
             self.restoreDefaultData()
 
     def saveData(self):
-        data:dict[str,str] = {
+        data:"{str:str}" = {
             ClientWindow.MEMORY_JSON_KEY[ClientWindow.IP]: self.getIP(),
             ClientWindow.MEMORY_JSON_KEY[ClientWindow.PORT]: self.portTextVariable.get(),
             ClientWindow.MEMORY_JSON_KEY[ClientWindow.NAME]: self.nameTextVariable.get()
@@ -277,7 +276,7 @@ class ClientWindow(Tk):
 
 if __name__ == "__main__":
     try:
-        window:ClientWindow = ClientWindow()
+        window:"ClientWindow" = ClientWindow()
         window.mainloop()
         window.saveData()
     except Exception as e:

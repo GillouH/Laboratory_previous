@@ -8,7 +8,7 @@ class Server:
         rList, wList, xList = select([self.serverSocket], [], [], TIMEOUT)
         for socketWaitingForConnection in rList:
             socketConnected, addr = socketWaitingForConnection.accept()
-            clientSocket:ClientSocket = ClientSocket(socketSrc=socketConnected)
+            clientSocket:"ClientSocket" = ClientSocket(socketSrc=socketConnected)
             logger.info(msg="Client connected {}".format(clientSocket))
             self.clientSocketList.append(clientSocket)
 
@@ -17,7 +17,7 @@ class Server:
             rList, wList, xList = select(self.clientSocketList, [], [], TIMEOUT)
             for clientSocketWithMsg in rList:
                 try:
-                    msgReceived:str = clientSocketWithMsg.recv(1024).decode()
+                    msgReceived:"str" = clientSocketWithMsg.recv(1024).decode()
                     if msgReceived == Socket.MSG_DISCONNECTION:
                         logger.info(msg="Client disconnected: {}".format(clientSocketWithMsg))
                         clientSocketWithMsg.close()
@@ -36,11 +36,11 @@ class Server:
                         logger.error(msg="{} {}".format(e, clientSocketWithMsg))
 
     def start(self):
-        self.serverSocket:ServerSocket = ServerSocket(name="Laboratory")
+        self.serverSocket:"ServerSocket" = ServerSocket(name="Laboratory")
         logger.info(msg="Server ready {}".format(self.serverSocket))
 
-        self.clientSocketList:list[ClientSocket] = []
-        self.loop:bool = True
+        self.clientSocketList:"[ClientSocket]" = []
+        self.loop:"bool" = True
         while self.loop:
             self.manageNewConnection()
             self.manageClientSocketMsg()
@@ -60,7 +60,7 @@ class Server:
 
 if __name__ == "__main__":
     try:
-        server:Server = Server()
+        server:"Server" = Server()
         server.start()
     except Exception as e:
         logger.error(msg=e)
