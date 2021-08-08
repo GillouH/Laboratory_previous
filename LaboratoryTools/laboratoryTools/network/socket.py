@@ -31,7 +31,7 @@ class Socket(socket):
         s:str = "<{} [{}]{} fd={}, family={}, type={}, proto={}".format(
             self.__class__.__qualname__,
             "close" if self._closed else "open",
-            " name={}".format(self.name) if self.name is not None else "",
+            "" if self.name is None else " name={}".format(self.name),
             self.fileno(),
             str(object=self.family),
             str(object=self.type),
@@ -54,10 +54,10 @@ class Socket(socket):
         return s
 
     def __str__(self)->str:
-        s:str = "["
-        s += "{}".format("{} - ".format(self.name) if self.name is not None else "")
-        s += "{}:{}".format(*self.getIPPort())
-        s += "]"
+        s:str = "[{}{}]".format(
+            "" if self.name is None else "{} - ".format(self.name),
+            "{}:{}".format(*self.getIPPort()),
+        )
         return s
 
 class ServerSocket(Socket):
