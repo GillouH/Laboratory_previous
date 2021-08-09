@@ -36,6 +36,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="laboratoryTools\network\__init__.py" />
+    <Compile Include="laboratoryTools\securityManager\core.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="laboratoryTools\securityManager\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="laboratoryTools\__init__.py">
       <SubType>Code</SubType>
     </Compile>
@@ -44,6 +50,7 @@
     <Folder Include="laboratoryTools\" />
     <Folder Include="laboratoryTools\logging\" />
     <Folder Include="laboratoryTools\network\" />
+    <Folder Include="laboratoryTools\securityManager\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
