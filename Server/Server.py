@@ -15,25 +15,25 @@ class Server:
     def manageClientSocketMsg(self):
         if len(self.clientSocketList) > 0:
             rList, wList, xList = select(self.clientSocketList, [], [], TIMEOUT)
-            for clientSocketWithMsg in rList:
+            for clientSocket in rList:
                 try:
-                    msgReceived:"str" = clientSocketWithMsg.recv(1024).decode()
+                    msgReceived:"str" = clientSocket.recv(1024).decode()
                     if msgReceived == Socket.MSG_DISCONNECTION:
-                        logger.info(msg="Client disconnected: {}".format(clientSocketWithMsg))
-                        clientSocketWithMsg.close()
-                        self.clientSocketList.remove(clientSocketWithMsg)
+                        logger.info(msg="Client disconnected: {}".format(clientSocket))
+                        clientSocket.close()
+                        self.clientSocketList.remove(clientSocket)
                     elif msgReceived == STOP_SERVER:
                         self.loop = False
                     else:
-                        logger.info(msg="Message received from the client {}:\n\t{}".format(clientSocketWithMsg, msgReceived))
+                        logger.info(msg="Message received from the client {}:\n\t{}".format(clientSocket, msgReceived))
                 except Exception as e:
-                    logger.error(msg="{} {}".format(e, clientSocketWithMsg))
+                    logger.error(msg="{} {}".format(e, clientSocket))
                     try:
-                        logger.info(msg="Client disconnection: {}".format(clientSocketWithMsg))
-                        clientSocketWithMsg.close()
-                        self.clientSocketList.remove(clientSocketWithMsg)
+                        logger.info(msg="Client disconnection: {}".format(clientSocket))
+                        clientSocket.close()
+                        self.clientSocketList.remove(clientSocket)
                     except Exception as e:
-                        logger.error(msg="{} {}".format(e, clientSocketWithMsg))
+                        logger.error(msg="{} {}".format(e, clientSocket))
 
     def start(self):
         self.serverSocket:"ServerSocket" = ServerSocket(name="Laboratory")
