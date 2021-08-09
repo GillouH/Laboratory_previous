@@ -11,7 +11,6 @@ from tkinter import VERTICAL    # Scrollbar Direction Constant
 from laboratoryTools.logging import logger
 from os.path import isfile
 from json import loads, dumps
-from laboratoryTools.securityManager import SecurityManager
 
 
 class ClientWindow(Tk):
@@ -92,7 +91,7 @@ class ClientWindow(Tk):
             socketList, wList, xList = select([self.clientSocket], [], [], TIMEOUT)
             for socketWithMsg in socketList:
                 try:
-                    msgReceived:"str" = SecurityManager.decrypt(text=socketWithMsg.recv(1024).decode(), key=socketWithMsg.key)
+                    msgReceived:"str" = socketWithMsg.recv_s(bufferSize=1024)
                     addr:"(str,int)" = socketWithMsg.getpeername()
                     self.displayMsg(msg="<<{}\n".format(msgReceived))
                     if msgReceived in (STOP_SERVER, Socket.MSG_DISCONNECTION):
@@ -199,7 +198,7 @@ class ClientWindow(Tk):
     def sendMessage(self):
         if self.isAbleToSend():
             msgToSend:"str" = self.inputTextVariable.get()
-            self.clientSocket.send(SecurityManager.encrypt(text=msgToSend, key=self.clientSocket.key, encoded=True))
+            self.clientSocket.send_s(data=msgToSend)
             self.displayMsg(msg=">>{}\n".format(msgToSend))
             self.inputTextVariable.set(value="")
 

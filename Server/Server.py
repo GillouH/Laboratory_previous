@@ -3,7 +3,6 @@ from laboratoryTools.logging import logger
 from select import select
 import rsa
 from time import time
-from laboratoryTools.securityManager import SecurityManager
 
 
 class Server:
@@ -35,7 +34,7 @@ class Server:
             for clientSocket in rList:
                 try:
                     abort:bool = False
-                    msgReceived:"str or bytes" = clientSocket.recv(1024) if clientSocket.key is None else SecurityManager.decrypt(text=clientSocket.recv(1024).decode(), key=clientSocket.key)
+                    msgReceived:"str or bytes" = clientSocket.recv(1024) if clientSocket.key is None else clientSocket.recv_s(bufferSize=1024)
                     msgReceivedType:"type" = type(msgReceived)
                     if msgReceivedType == bytes:
                         if msgReceived == Socket.MSG_DISCONNECTION.encode():
@@ -50,7 +49,7 @@ class Server:
                             else:
                                 clientSocket.statut = Socket.STATUT.UNTRUSTED
                                 logger.info(msg="Ask PASSWORD to {}".format(clientSocket))
-                                clientSocket.send(SecurityManager.encrypt(text=ServerSocket.ASK_PASSWORD, key=clientSocket.key, encoded=True))
+                                clientSocket.send_s(data=ServerSocket.ASK_PASSWORD)
                                 clientSocket.timeStamp = time()
                         else:
                             abort = True
@@ -61,7 +60,7 @@ class Server:
                             logger.info(msg="Receiving PASSWORD from {}".format(clientSocket))
                             clientSocket.statut = Socket.STATUT.TRUSTED
                             logger.info(msg="Ask name {}".format(clientSocket))
-                            clientSocket.send(SecurityManager.encrypt(text=ServerSocket.ASK_NAME, key=clientSocket.key, encoded=True))
+                            clientSocket.send_s(data=ServerSocket.ASK_NAME)
                             clientSocket.timeStamp = time()
                         elif clientSocket.statut == Socket.STATUT.TRUSTED:
                             logger.info(msg="Receiving name from {}".format(clientSocket))
@@ -92,7 +91,7 @@ class Server:
             rList, wList, xList = select(clientSocketList, [], [], TIMEOUT)
             for clientSocket in rList:
                 try:
-                    msgReceived:"str" = SecurityManager.decrypt(text=clientSocket.recv(1024).decode(), key=clientSocket.key)
+                    clientSocket.recv_s(bufferSize=1024)
                     if msgReceived == Socket.MSG_DISCONNECTION:
                         logger.info(msg="Client disconnected: {}".format(clientSocket))
                         clientSocket.close()
@@ -138,7 +137,7 @@ class Server:
             try:
                 logger.info(msg="Client disconnection: {}".format(clientSocket))
                 if clientSocket.key is not None:
-                    clientSocket.send(SecurityManager.encrypt(text=STOP_SERVER, key=clientSocket.key, encoded=True))
+                    clientSocket.send_s(data=STOP_SERVER)
                 clientSocket.close()
             except Exception as e:
                 logger.error(msg="{} {}".format(e, clientSocket))

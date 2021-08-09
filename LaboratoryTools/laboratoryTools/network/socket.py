@@ -115,7 +115,7 @@ class ClientSocket(Socket):
                 continue
             rList, wList, xList = select([self], [], [], TIMEOUT)
             for socketWithMsg in rList:
-                msgReceived:"str or bytes" = socketWithMsg.recv(1024) if self.key is None else SecurityManager.decrypt(text=socketWithMsg.recv(1024).decode(), key=self.key)
+                msgReceived:"str or bytes" = socketWithMsg.recv(1024) if self.key is None else self.recv_s(bufferSize=1024)
                 msgReceivedType:"type" = type(msgReceived)
                 if msgReceivedType == bytes:
                     if msgReceived.decode() in (STOP_SERVER, Socket.MSG_DISCONNECTION):
@@ -141,13 +141,13 @@ class ClientSocket(Socket):
                     elif self.statut == Socket.STATUT.UNTRUSTED and msgReceived == ServerSocket.ASK_PASSWORD:
                         logger.info(msg="Receiving PASSWORD request from {}".format(socketWithMsg))
                         logger.info(msg="Sending PASSWORD to {}".format(socketWithMsg))
-                        self.send(SecurityManager.encrypt(text=PASSWORD, key=self.key, encoded=True))
+                        self.send_s(data=PASSWORD)
                         self.statut = Socket.STATUT.TRUSTED
                         self.timeStamp = time()
                     elif self.statut == Socket.STATUT.TRUSTED and msgReceived == ServerSocket.ASK_NAME:
                         logger.info(msg="Receiving name request from {}".format(socketWithMsg))
                         logger.info(msg="Sending name to {}".format(socketWithMsg))
-                        self.send(SecurityManager.encrypt(text=self.localName, key=self.key, encoded=True))
+                        self.send_s(data=self.localName)
                         self.statut = Socket.STATUT.OK
                         self.timeStamp = None
                         done = True
@@ -158,6 +158,16 @@ class ClientSocket(Socket):
         if abort:
             self.close()
             raise ConnectionError("Enable to connect to the server.")
+
+    def recv_s(self, bufferSize:"int")->"str":
+        if self.key is None:
+            raise OSError("{}.{} can't be used until key argument is None. Use {} method instead.".format(self.__class__.__qualname__, self.recv_s.__name__, self.recv.__name__))
+        return SecurityManager.decrypt(text=self.recv(bufferSize).decode(), key=self.key)
+
+    def send_s(self, data:"str")->"int":
+        if self.key is None:
+            raise OSError("{}.{} can't be used until key argument is None. Use {} method instead.".format(self.__class__.__qualname__, self.send_s.__name__, self.send.__name__))
+        return self.send(SecurityManager.encrypt(text=data, key=self.key, encoded=True))
 
 
 if __name__ == "__main__":
