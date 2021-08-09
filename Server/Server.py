@@ -67,6 +67,7 @@ class Server:
                             clientSocket.name = msgReceived
                             clientSocket.statut = Socket.STATUT.OK
                             logger.info(msg="Client accepted {}".format(clientSocket))
+                            clientSocket.send_s(data=ServerSocket.ACCEPTED)
                         else:
                             abort = True
                     else:
@@ -98,6 +99,8 @@ class Server:
                         self.clientSocketList.remove(clientSocket)
                     elif msgReceived == ServerSocket.STOP_SERVER:
                         self.loop = False
+                    elif msgReceived == ServerSocket.ASK_NAME:
+                        clientSocket.send_s(data=self.serverSocket.name)
                     else:
                         logger.info(msg="Message received from the client {}:\n\t{}".format(clientSocket, msgReceived))
                 except Exception as e:

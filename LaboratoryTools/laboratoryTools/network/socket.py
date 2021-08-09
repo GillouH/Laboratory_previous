@@ -152,6 +152,13 @@ class ClientSocket(Socket):
                         self.send_s(data=self.localName)
                         self.statut = Socket.STATUT.OK
                         self.timeStamp = None
+                    elif self.statut == Socket.STATUT.OK and msgReceived == ServerSocket.ACCEPTED:
+                        logger.info(msg="Ask name {}".format(socketWithMsg))
+                        self.send_s(data=ServerSocket.ASK_NAME)
+                    elif self.statut == Socket.STATUT.OK:
+                        logger.info(msg="Receiving name from {}".format(socketWithMsg))
+                        self.name = msgReceived
+                        logger.info(msg="Connected to {}".format(socketWithMsg))
                         done = True
                     else:
                         abort = True
