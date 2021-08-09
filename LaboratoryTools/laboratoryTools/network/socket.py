@@ -1,6 +1,6 @@
 from socket import socket, AF_INET, SOCK_STREAM, dup, error
 from laboratoryTools.network.core import IP
-from laboratoryTools.network.resources import PORT, TIMEOUT, STOP_SERVER, PASSWORD
+from laboratoryTools.network.resources import PORT, PASSWORD
 from laboratoryTools.logging import logger
 from enum import Enum, auto
 from select import select
@@ -15,8 +15,9 @@ class Socket(socket):
         UNTRUSTED = auto()  # key known - waiting for password
         TRUSTED = auto()    # password checked - waiting for name
         OK = auto() # everything is checked
-        
+
     CONNECTION_TIMEOUT:"float" = None
+    SELECT_TIMEOUT:"float" = 0.05
     MSG_DISCONNECTION:"str" = ""
 
     @classmethod
@@ -72,7 +73,7 @@ class Socket(socket):
         s:"str" = "[{}{}{}]".format(
             "" if self.name is None else "{} - ".format(self.name),
             "{}:{}".format(*self.getIPPort()),
-            "" if self.statut is None else " - {}".format(self.statut.name),
+            "" if self.statut is None else " - {}".format(self.statut.name)
         )
         return s
 
@@ -81,6 +82,7 @@ class ServerSocket(Socket):
     ASK_PASSWORD:"str" = "PASSWORD ?"
     ASK_NAME:"str" = "NAME ?"
     ACCEPTED:"str" = "ACCEPTED"
+    STOP_SERVER:"str" = "STOP SERVER"
 
     def __init__(self, name:"str"=None, ip:"str"=IP, port:"int"=PORT):
         super().__init__(name=name)
@@ -90,7 +92,7 @@ class ServerSocket(Socket):
     def getIPPort(self)->"(str,int)":
         return self.getsockname()
 
-class ClientSocket(Socket):
+class ClientSocket(Socket):  
     CONNECTION_TIMEOUT:"float" = 10
 
     def __init__(self, name:"str"=None, socketSrc:"socket"=None):
@@ -105,7 +107,7 @@ class ClientSocket(Socket):
     def getIPPort(self)->"(str,int)":
         return self.getpeername()
 
-    def connect(self, address:'(str,int'):
+    def connect(self, address:"(str,int)"):
         super().connect(address)
         self.timeStamp = time()
         abort, done = False, False
@@ -113,12 +115,12 @@ class ClientSocket(Socket):
             if self.timeStamp is not None and time() - self.timeStamp > ClientSocket.CONNECTION_TIMEOUT:
                 abort = True
                 continue
-            rList, wList, xList = select([self], [], [], TIMEOUT)
+            rList, wList, xList = select([self], [], [], ClientSocket.SELECT_TIMEOUT)
             for socketWithMsg in rList:
-                msgReceived:"str or bytes" = socketWithMsg.recv(1024) if self.key is None else self.recv_s(bufferSize=1024)
+                msgReceived:"str or bytes" = socketWithMsg.recv(1024) if self.key is None else socketWithMsg.recv_s(bufferSize=1024)
                 msgReceivedType:"type" = type(msgReceived)
                 if msgReceivedType == bytes:
-                    if msgReceived.decode() in (STOP_SERVER, Socket.MSG_DISCONNECTION):
+                    if msgReceived.decode() in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
                         abort = True
                     elif self.statut == Socket.STATUT.NEW:
                         logger.info(msg="Receiving RSA PUB KEY from {}".format(socketWithMsg))
@@ -136,7 +138,7 @@ class ClientSocket(Socket):
                     else:
                         abort=True
                 elif msgReceivedType == str:
-                    if msgReceived in (STOP_SERVER, Socket.MSG_DISCONNECTION):
+                    if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
                         abort = True
                     elif self.statut == Socket.STATUT.UNTRUSTED and msgReceived == ServerSocket.ASK_PASSWORD:
                         logger.info(msg="Receiving PASSWORD request from {}".format(socketWithMsg))

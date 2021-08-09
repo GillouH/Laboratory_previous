@@ -1,4 +1,4 @@
-from laboratoryTools.network import Socket, ServerSocket, ClientSocket, TIMEOUT, STOP_SERVER, PASSWORD
+from laboratoryTools.network import Socket, ServerSocket, ClientSocket, PASSWORD
 from laboratoryTools.logging import logger
 from select import select
 import rsa
@@ -7,7 +7,7 @@ from time import time
 
 class Server:
     def manageNewConnection(self):
-        rList, wList, xList = select([self.serverSocket], [], [], TIMEOUT)
+        rList, wList, xList = select([self.serverSocket], [], [], ServerSocket.SELECT_TIMEOUT)
         for socketWaitingForConnection in rList:
             pubKey, privKey = rsa.newkeys(nbits=2048, poolsize=8)
             socketConnected, addr = socketWaitingForConnection.accept()
@@ -30,7 +30,7 @@ class Server:
     def manageNewClientSocketMsg(self):
         clientSocketList:"[ClientSocket]" = list(filter(self.newClientFilter, self.clientSocketList))
         if len(clientSocketList) > 0:
-            rList, wList, xList = select(clientSocketList, [], [], TIMEOUT)
+            rList, wList, xList = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)
             for clientSocket in rList:
                 try:
                     abort:bool = False
@@ -88,15 +88,15 @@ class Server:
     def manageOKClientSocketMsg(self):
         clientSocketList = list(filter(lambda clientSocket: clientSocket.statut == Socket.STATUT.OK, self.clientSocketList))
         if len(clientSocketList) > 0:
-            rList, wList, xList = select(clientSocketList, [], [], TIMEOUT)
+            rList, wList, xList = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)
             for clientSocket in rList:
                 try:
-                    clientSocket.recv_s(bufferSize=1024)
+                    msgReceived:str = clientSocket.recv_s(bufferSize=1024)
                     if msgReceived == Socket.MSG_DISCONNECTION:
                         logger.info(msg="Client disconnected: {}".format(clientSocket))
                         clientSocket.close()
                         self.clientSocketList.remove(clientSocket)
-                    elif msgReceived == STOP_SERVER:
+                    elif msgReceived == ServerSocket.STOP_SERVER:
                         self.loop = False
                     else:
                         logger.info(msg="Message received from the client {}:\n\t{}".format(clientSocket, msgReceived))
@@ -137,7 +137,7 @@ class Server:
             try:
                 logger.info(msg="Client disconnection: {}".format(clientSocket))
                 if clientSocket.key is not None:
-                    clientSocket.send_s(data=STOP_SERVER)
+                    clientSocket.send_s(data=ServerSocket.STOP_SERVER)
                 clientSocket.close()
             except Exception as e:
                 logger.error(msg="{} {}".format(e, clientSocket))
