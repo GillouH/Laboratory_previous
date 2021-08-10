@@ -91,11 +91,12 @@ class ClientWindow(Tk):
             socketList, wList, xList = select([self.clientSocket], [], [], ClientSocket.SELECT_TIMEOUT)
             for socketWithMsg in socketList:
                 try:
-                    msgReceived:"str" = socketWithMsg.recv_s(bufferSize=1024)
-                    addr:"(str,int)" = socketWithMsg.getpeername()
-                    self.displayMsg(msg="<<{}\n".format(msgReceived))
-                    if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
-                        self.disconnection()
+                    msgReceivedList:"list[str]" = socketWithMsg.recv_s(bufferSize=1024)
+                    for msgReceived in msgReceivedList:
+                        addr:"(str,int)" = socketWithMsg.getpeername()
+                        self.displayMsg(msg="<<{}\n".format(msgReceived))
+                        if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
+                            self.disconnection()
                 except ConnectionResetError:
                     self.disconnection()
 

@@ -19,6 +19,7 @@ class Socket(socket):
     CONNECTION_TIMEOUT:"float" = None
     SELECT_TIMEOUT:"float" = 0.05
     MSG_DISCONNECTION:"str" = ""
+    END_MSG:"str" = "\0"
 
     @classmethod
     def createSocket(cls)->"socket":
@@ -125,7 +126,7 @@ class ServerSocket(Socket):
             for clientSocket in rList:
                 try:
                     abort:bool = False
-                    msgReceived:"str or bytes" = clientSocket.recv(1024) if clientSocket.key is None else clientSocket.recv_s(bufferSize=1024)
+                    msgReceived:"list[str] or bytes" = clientSocket.recv(1024) if clientSocket.key is None else clientSocket.recv_s(bufferSize=1024)
                     msgReceivedType:"type" = type(msgReceived)
                     if msgReceivedType == bytes:
                         if msgReceived == Socket.MSG_DISCONNECTION.encode():
@@ -144,7 +145,8 @@ class ServerSocket(Socket):
                                 clientSocket.timeStamp = time()
                         else:
                             abort = True
-                    elif msgReceivedType == str:
+                    elif msgReceivedType == list and len(msgReceived) == 1:
+                        msgReceived = msgReceived[0]
                         if msgReceived == Socket.MSG_DISCONNECTION:
                             abort = True
                         elif clientSocket.statut == Socket.STATUT.UNTRUSTED and msgReceived == PASSWORD:
@@ -177,24 +179,25 @@ class ServerSocket(Socket):
                     except Exception as e:
                         logger.error(msg="{} {}".format(e, clientSocket))
 
-    def manageOKClientSocketMsg(self)->"NotImplementedError":
+    def manageOKClientSocketMsg(self)->"bool":
         clientSocketList = list(filter(lambda clientSocket: clientSocket.statut == Socket.STATUT.OK, self.clientSocketList))
         if len(clientSocketList) > 0:
             rList, wList, xList = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)
             for clientSocket in rList:
                 try:
-                    msgReceived:str = clientSocket.recv_s(bufferSize=1024)
-                    if msgReceived == Socket.MSG_DISCONNECTION:
-                        logger.info(msg="Client disconnected: {}".format(clientSocket))
-                        clientSocket.close()
-                        self.clientSocketList.remove(clientSocket)
-                    elif msgReceived == ServerSocket.STOP_SERVER:
-                        self.loop = False
-                    elif msgReceived == ServerSocket.ASK_NAME:
-                        clientSocket.send_s(data=self.name)
-                    else:
-                        self.msgReceivedCallback(clientSocket=clientSocket, msg=msgReceived)
-
+                    msgReceivedList:"list[str]" = clientSocket.recv_s(bufferSize=1024)
+                    for msgReceived in msgReceivedList:
+                        if msgReceived == Socket.MSG_DISCONNECTION:
+                            logger.info(msg="Client disconnected: {}".format(clientSocket))
+                            clientSocket.close()
+                            self.clientSocketList.remove(clientSocket)
+                        elif msgReceived == ServerSocket.STOP_SERVER:
+                            self.loop = False
+                            return False
+                        elif msgReceived == ServerSocket.ASK_NAME:
+                            clientSocket.send_s(data=self.name)
+                        else:
+                            self.msgReceivedCallback(clientSocket=clientSocket, msg=msgReceived)
                 except Exception as e:
                     logger.error(msg="{} {}".format(e, clientSocket))
                     try:
@@ -203,10 +206,11 @@ class ServerSocket(Socket):
                         self.clientSocketList.remove(clientSocket)
                     except Exception as e:
                         logger.error(msg="{} {}".format(e, clientSocket))
+        return True
 
-    def manageClientSocketMsg(self):
+    def manageClientSocketMsg(self)->"bool":
         self.manageNewClientSocketMsg()
-        self.manageOKClientSocketMsg()
+        return self.manageOKClientSocketMsg()
 
     def checkClientSocketToDisconnect(self):
         def clientSocketToDisconnectFilter(clientSocket:"ClientSocket")->"bool":
@@ -224,7 +228,8 @@ class ServerSocket(Socket):
         self.loop = True
         while self.loop:
             self.manageNewConnection()
-            self.manageClientSocketMsg()
+            if self.manageClientSocketMsg() == False:
+                break
             self.checkClientSocketToDisconnect()
 
     def stop(self):
@@ -269,7 +274,7 @@ class ClientSocket(Socket):
                 continue
             rList, wList, xList = select([self], [], [], ClientSocket.SELECT_TIMEOUT)
             for socketWithMsg in rList:
-                msgReceived:"str or bytes" = socketWithMsg.recv(1024) if self.key is None else socketWithMsg.recv_s(bufferSize=1024)
+                msgReceived:"list[str] or bytes" = socketWithMsg.recv(1024) if self.key is None else socketWithMsg.recv_s(bufferSize=1024)
                 msgReceivedType:"type" = type(msgReceived)
                 if msgReceivedType == bytes:
                     if msgReceived.decode() in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
@@ -289,7 +294,8 @@ class ClientSocket(Socket):
                             self.timeStamp = time()
                     else:
                         abort=True
-                elif msgReceivedType == str:
+                elif msgReceivedType == list and len(msgReceived) == 1:
+                    msgReceived = msgReceived[0]
                     if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
                         abort = True
                     elif self.statut == Socket.STATUT.UNTRUSTED and msgReceived == ServerSocket.ASK_PASSWORD:
@@ -320,15 +326,15 @@ class ClientSocket(Socket):
             self.close()
             raise ConnectionError("Enable to connect to the server.")
 
-    def recv_s(self, bufferSize:"int")->"str":
+    def recv_s(self, bufferSize:"int")->"list[str]":
         if self.key is None:
             raise OSError("{}.{} can't be used until key argument is None. Use {} method instead.".format(self.__class__.__qualname__, self.recv_s.__name__, self.recv.__name__))
-        return SecurityManager.decrypt(text=self.recv(bufferSize).decode(), key=self.key)
+        return SecurityManager.decrypt(text=self.recv(bufferSize).decode(), key=self.key).split(Socket.END_MSG)[:-1]
 
     def send_s(self, data:"str")->"int":
         if self.key is None:
             raise OSError("{}.{} can't be used until key argument is None. Use {} method instead.".format(self.__class__.__qualname__, self.send_s.__name__, self.send.__name__))
-        return self.send(SecurityManager.encrypt(text=data, key=self.key, encoded=True))
+        return self.send(SecurityManager.encrypt(text=data+Socket.END_MSG, key=self.key, encoded=True))
 
 
 if __name__ == "__main__":
