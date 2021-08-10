@@ -16,13 +16,13 @@ class SecurityManager:
         return key
 
     @classmethod
-    def encrypt(cls, text:"str", key:"str", encoded:"bool"=False)->"str or bytes":
+    def encrypt(cls, text:"str", key:"str", encoded:"bool"=False)->"Union[str,bytes]":
         # Personnal method to encrypt some data.
         encryptedText:"str" = text
         return encryptedText if not encoded else encryptedText.encode()
 
     @classmethod
-    def decrypt(cls, text:"str", key:"str", encoded:"bool"=False)->"str or bytes":
+    def decrypt(cls, text:"str", key:"str", encoded:"bool"=False)->"Union[str,bytes]":
         # Personnal method to decrypt some data.
         decryptedText:"str" = text
         return decryptedText if not encoded else decryptedText.encode()

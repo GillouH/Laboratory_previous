@@ -56,13 +56,13 @@ class Socket(socket):
             )
         if not self._closed:
             try:
-                laddr:"(str,int)" = self.getsockname()
+                laddr:"tuple[str,int]" = self.getsockname()
                 if laddr:
                     s += ", laddr={}".format(laddr)
             except error:
                 pass
             try:
-                raddr:"(str,int)" = self.getpeername()
+                raddr:"tuple[str,int]" = self.getpeername()
                 if raddr:
                     s += ", raddr={}".format(raddr)
             except error:
@@ -90,7 +90,7 @@ class ServerSocket(Socket):
         self.clientSocketList:"list[ClientSocket]" = []
         self.loop:"bool" = False
 
-    def getIPPort(self)->"(str,int)":
+    def getIPPort(self)->"tuple[str,int]":
         return self.getsockname()
 
     def manageNewConnection(self):
@@ -126,7 +126,7 @@ class ServerSocket(Socket):
             for clientSocket in rList:
                 try:
                     abort:bool = False
-                    msgReceived:"list[str] or bytes" = clientSocket.recv(1024) if clientSocket.key is None else clientSocket.recv_s(bufferSize=1024)
+                    msgReceived:"Union[bytes,list[str]]" = clientSocket.recv(1024) if clientSocket.key is None else clientSocket.recv_s(bufferSize=1024)
                     msgReceivedType:"type" = type(msgReceived)
                     if msgReceivedType == bytes:
                         if msgReceived == Socket.MSG_DISCONNECTION.encode():
@@ -261,10 +261,10 @@ class ClientSocket(Socket):
         self.key:"str" = None
         self.timeStamp:"float" = None
 
-    def getIPPort(self)->"(str,int)":
+    def getIPPort(self)->"tuple[str,int]":
         return self.getpeername()
 
-    def connect(self, address:"(str,int)"):
+    def connect(self, address:"tuple[str,int]"):
         super().connect(address)
         self.timeStamp = time()
         abort, done = False, False
@@ -274,7 +274,7 @@ class ClientSocket(Socket):
                 continue
             rList, wList, xList = select([self], [], [], ClientSocket.SELECT_TIMEOUT)
             for socketWithMsg in rList:
-                msgReceived:"list[str] or bytes" = socketWithMsg.recv(1024) if self.key is None else socketWithMsg.recv_s(bufferSize=1024)
+                msgReceived:"Union[bytes,list[str]]" = socketWithMsg.recv(1024) if self.key is None else socketWithMsg.recv_s(bufferSize=1024)
                 msgReceivedType:"type" = type(msgReceived)
                 if msgReceivedType == bytes:
                     if msgReceived.decode() in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
