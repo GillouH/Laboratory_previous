@@ -84,13 +84,161 @@ class ServerSocket(Socket):
     ACCEPTED:"str" = "ACCEPTED"
     STOP_SERVER:"str" = "STOP SERVER"
 
-    def __init__(self, name:"str"=None, ip:"str"=IP, port:"int"=PORT):
+    def __init__(self, name:"str"=None):
         super().__init__(name=name)
-        self.bind((ip, port))
-        self.listen(5)
+        self.clientSocketList:"[ClientSocket]" = []
+        self.loop:"bool" = False
 
     def getIPPort(self)->"(str,int)":
         return self.getsockname()
+
+    def manageNewConnection(self):
+        rList, wList, xList = select([self], [], [], ServerSocket.SELECT_TIMEOUT)
+        for socketWaitingForConnection in rList:
+            pubKey, privKey = rsa.newkeys(nbits=2048, poolsize=8)
+            socketConnected, addr = socketWaitingForConnection.accept()
+            clientSocket:"ClientSocket" = ClientSocket(socketSrc=socketConnected)
+            logger.info(msg="Client connected {}".format(clientSocket))
+            self.clientSocketList.append(clientSocket)
+            clientSocket.pubKey, clientSocket.privKey = pubKey, privKey
+            logger.info(msg="Sending RSA PUB KEY to {}".format(clientSocket))
+            clientSocket.send(clientSocket.pubKey.save_pkcs1())
+            clientSocket.timeStamp = time()
+
+    @classmethod
+    def newClientFilter(cls, clientSocket:"ClientSocket")->"bool":
+        statutList:"[Socket.STATUT]" = [
+            Socket.STATUT.NEW,
+            Socket.STATUT.UNTRUSTED,
+            Socket.STATUT.TRUSTED
+        ]
+        return clientSocket.statut in statutList
+
+    def manageNewClientSocketMsg(self):
+        clientSocketList:"[ClientSocket]" = list(filter(ServerSocket.newClientFilter, self.clientSocketList))
+        if len(clientSocketList) > 0:
+            rList, wList, xList = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)
+            for clientSocket in rList:
+                try:
+                    abort:bool = False
+                    msgReceived:"str or bytes" = clientSocket.recv(1024) if clientSocket.key is None else clientSocket.recv_s(bufferSize=1024)
+                    msgReceivedType:"type" = type(msgReceived)
+                    if msgReceivedType == bytes:
+                        if msgReceived == Socket.MSG_DISCONNECTION.encode():
+                            abort = True
+                        elif clientSocket.statut == Socket.STATUT.NEW:
+                            logger.info(msg="Receiving KEY from {}".format(clientSocket))
+                            try:
+                                clientSocket.key = rsa.decrypt(crypto=msgReceived, priv_key=clientSocket.privKey).decode()
+                            except Exception as e:
+                                logger.error(msg=e)
+                                abort = True
+                            else:
+                                clientSocket.statut = Socket.STATUT.UNTRUSTED
+                                logger.info(msg="Ask PASSWORD to {}".format(clientSocket))
+                                clientSocket.send_s(data=ServerSocket.ASK_PASSWORD)
+                                clientSocket.timeStamp = time()
+                        else:
+                            abort = True
+                    elif msgReceivedType == str:
+                        if msgReceived == Socket.MSG_DISCONNECTION:
+                            abort = True
+                        elif clientSocket.statut == Socket.STATUT.UNTRUSTED and msgReceived == PASSWORD:
+                            logger.info(msg="Receiving PASSWORD from {}".format(clientSocket))
+                            clientSocket.statut = Socket.STATUT.TRUSTED
+                            logger.info(msg="Ask name {}".format(clientSocket))
+                            clientSocket.send_s(data=ServerSocket.ASK_NAME)
+                            clientSocket.timeStamp = time()
+                        elif clientSocket.statut == Socket.STATUT.TRUSTED:
+                            logger.info(msg="Receiving name from {}".format(clientSocket))
+                            clientSocket.name = msgReceived
+                            clientSocket.statut = Socket.STATUT.OK
+                            logger.info(msg="Client accepted {}".format(clientSocket))
+                            clientSocket.send_s(data=ServerSocket.ACCEPTED)
+                        else:
+                            abort = True
+                    else:
+                        abort = True
+
+                    if abort:
+                        logger.info(msg="Client disconnected: {}".format(clientSocket))
+                        clientSocket.close()
+                        self.clientSocketList.remove(clientSocket)
+                except Exception as e:
+                    logger.error(msg="{} {}".format(e, clientSocket))
+                    try:
+                        logger.info(msg="Client disconnection: {}".format(clientSocket))
+                        clientSocket.close()
+                        self.clientSocketList.remove(clientSocket)
+                    except Exception as e:
+                        logger.error(msg="{} {}".format(e, clientSocket))
+
+    def manageOKClientSocketMsg(self)->"NotImplementedError":
+        clientSocketList = list(filter(lambda clientSocket: clientSocket.statut == Socket.STATUT.OK, self.clientSocketList))
+        if len(clientSocketList) > 0:
+            rList, wList, xList = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)
+            for clientSocket in rList:
+                try:
+                    msgReceived:str = clientSocket.recv_s(bufferSize=1024)
+                    if msgReceived == Socket.MSG_DISCONNECTION:
+                        logger.info(msg="Client disconnected: {}".format(clientSocket))
+                        clientSocket.close()
+                        self.clientSocketList.remove(clientSocket)
+                    elif msgReceived == ServerSocket.STOP_SERVER:
+                        self.loop = False
+                    elif msgReceived == ServerSocket.ASK_NAME:
+                        clientSocket.send_s(data=self.name)
+                    else:
+                        self.msgReceivedCallback(clientSocket=clientSocket, msg=msgReceived)
+
+                except Exception as e:
+                    logger.error(msg="{} {}".format(e, clientSocket))
+                    try:
+                        logger.info(msg="Client disconnection: {}".format(clientSocket))
+                        clientSocket.close()
+                        self.clientSocketList.remove(clientSocket)
+                    except Exception as e:
+                        logger.error(msg="{} {}".format(e, clientSocket))
+
+    def manageClientSocketMsg(self):
+        self.manageNewClientSocketMsg()
+        self.manageOKClientSocketMsg()
+
+    def checkClientSocketToDisconnect(self):
+        def clientSocketToDisconnectFilter(clientSocket:"ClientSocket")->"bool":
+            return ServerSocket.newClientFilter(clientSocket=clientSocket) and clientSocket.timeStamp is not None and time() - clientSocket.timeStamp > ServerSocket.CONNECTION_TIMEOUT
+        for clientSocket in filter(clientSocketToDisconnectFilter, self.clientSocketList):
+            logger.info(msg="Client disconnected: {}".format(clientSocket))
+            clientSocket.close()
+            self.clientSocketList.remove(clientSocket)
+
+    def start(self, ip:"str"=IP, port:"int"=PORT):
+        self.bind((ip, port))
+        self.listen(5)
+        logger.info(msg="Server ready {}".format(self))
+
+        self.loop = True
+        while self.loop:
+            self.manageNewConnection()
+            self.manageClientSocketMsg()
+            self.checkClientSocketToDisconnect()
+
+    def stop(self):
+        for clientSocket in self.clientSocketList:
+            try:
+                logger.info(msg="Client disconnection: {}".format(clientSocket))
+                if clientSocket.key is not None:
+                    clientSocket.send_s(data=ServerSocket.STOP_SERVER)
+                clientSocket.close()
+            except Exception as e:
+                logger.error(msg="{} {}".format(e, clientSocket))
+        self.clientSocketList.clear()
+        logger.info(msg="Server shutdown {}".format(self))
+        self.close()
+
+    def msgReceivedCallback(self, clientSocket:"ClientSocket", msg:"str")->"NotImplementedError":
+        raise NotImplementedError
+
 
 class ClientSocket(Socket):  
     CONNECTION_TIMEOUT:"float" = 10
