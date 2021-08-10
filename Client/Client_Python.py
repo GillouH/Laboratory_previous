@@ -31,7 +31,7 @@ class ClientWindow(Tk):
 
     MAX_PORT:"int" = 65535
     MAX_IP:"int" = 255
-    
+
     def __init__(self):
         super().__init__()
 

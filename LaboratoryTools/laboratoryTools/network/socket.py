@@ -249,7 +249,7 @@ class ServerSocket(Socket):
         raise NotImplementedError
 
 
-class ClientSocket(Socket):  
+class ClientSocket(Socket):
     CONNECTION_TIMEOUT:"float" = 10
 
     def __init__(self, name:"str"=None, socketSrc:"socket"=None):
