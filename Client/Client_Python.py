@@ -25,7 +25,7 @@ class ClientWindow(Tk):
     IP:"str" = "IP"
     PORT:"str" = "PORT"
     NAME:"str" = "NAME"
-    MEMORY_JSON_KEY:"{str:str}" = {}
+    MEMORY_JSON_KEY:"dict[str,str]" = {}
     for key in [IP, PORT, NAME]:
         MEMORY_JSON_KEY[key]:"str" = "_".join(["MEMORY_JSON_KEY", key])
 
@@ -36,7 +36,7 @@ class ClientWindow(Tk):
         super().__init__()
 
         self.FONT:"Font" = Font(root=self, size=15)
-        self.serverConfigWidget:"[Widget]" = []
+        self.serverConfigWidget:"list[Widget]" = []
         self.isConnected:"bool" = False
 
         self.nameTextVariable:"StringVar" = StringVar()
@@ -45,7 +45,7 @@ class ClientWindow(Tk):
         self.portTextVariable:"StringVar" = StringVar()
         self.portTextVariable.trace_add(mode="write", callback=self.updateConnectionButtonState)
 
-        self.IPTextVariableList:"[StringVar]" = [StringVar() for IPValue in serverAddress[0].split(sep=".")]
+        self.IPTextVariableList:"list[StringVar]" = [StringVar() for IPValue in serverAddress[0].split(sep=".")]
         for IPTextVariable in self.IPTextVariableList:
             IPTextVariable.trace_add(mode="write", callback=self.updateConnectionButtonState)
 
@@ -59,7 +59,7 @@ class ClientWindow(Tk):
         self.restoreData()
 
     def isAbleToConnect(self)->"bool":
-        textVariableList:"[StringVar]" = self.IPTextVariableList + [self.portTextVariable, self.nameTextVariable]
+        textVariableList:"list[StringVar]" = self.IPTextVariableList + [self.portTextVariable, self.nameTextVariable]
         return not self.isConnected and not False in list(map(lambda textVariable: textVariable.get() != "", textVariableList))
     def updateConnectionButtonState(self, *paramList, **paramDict):
         self.connectButton.config(state=NORMAL if self.isAbleToConnect() else DISABLED)
@@ -220,7 +220,7 @@ class ClientWindow(Tk):
     def getIP(self)->"str":
         return ".".join(textVariable.get() for textVariable in self.IPTextVariableList)
     def setIP(self, value:"str"):
-        IPValueList:"[str]" = value.split(sep=".")
+        IPValueList:"list[str]" = value.split(sep=".")
         for i in range(len(IPValueList)):
             self.IPTextVariableList[i].set(value=IPValueList[i])
     def restoreDefaultIP(self):
@@ -239,12 +239,12 @@ class ClientWindow(Tk):
             with open(file=ClientWindow.MEMORY_FILE_NAME, mode="r") as file:
                 content:"str" = file.read()
             try:
-                data:"{str:str}" = loads(s=content)
+                data:"dict[str,str]" = loads(s=content)
             except Exception as e:
                 logger.error(msg=e)
                 self.restoreDefaultData()
                 return
-            keySetDefaultList:"[(str,method(str),method())]" = [
+            keySetDefaultList:"list[tuple[str,method(str),method()]]" = [
                 (ClientWindow.IP, self.setIP, self.restoreDefaultIP),
                 (ClientWindow.PORT, self.portTextVariable.set, self.restoreDefaultPort),
                 (ClientWindow.NAME, self.nameTextVariable.set, self.restoreDefaultName)
@@ -260,7 +260,7 @@ class ClientWindow(Tk):
             self.restoreDefaultData()
 
     def saveData(self):
-        data:"{str:str}" = {
+        data:"dict[str,str]" = {
             ClientWindow.MEMORY_JSON_KEY[ClientWindow.IP]: self.getIP(),
             ClientWindow.MEMORY_JSON_KEY[ClientWindow.PORT]: self.portTextVariable.get(),
             ClientWindow.MEMORY_JSON_KEY[ClientWindow.NAME]: self.nameTextVariable.get()

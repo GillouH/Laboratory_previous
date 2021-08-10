@@ -11,7 +11,7 @@ def getIP()->"str":
     return ip
 
 IP:"str" = getIP()
-serverAddress:"(str,int)" = (IP, PORT)
+serverAddress:"tuple[str,int]" = (IP, PORT)
 
 
 if __name__ == "__main__":

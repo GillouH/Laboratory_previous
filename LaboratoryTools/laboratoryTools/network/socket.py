@@ -86,7 +86,7 @@ class ServerSocket(Socket):
 
     def __init__(self, name:"str"=None):
         super().__init__(name=name)
-        self.clientSocketList:"[ClientSocket]" = []
+        self.clientSocketList:"list[ClientSocket]" = []
         self.loop:"bool" = False
 
     def getIPPort(self)->"(str,int)":
@@ -106,12 +106,12 @@ class ServerSocket(Socket):
             clientSocket.timeStamp = time()
 
     @classmethod
-    def socketFilterByStatut(cls, clientSocket:"ClientSocket", statuts:"[STATUT]")->bool:
+    def socketFilterByStatut(cls, clientSocket:"ClientSocket", statuts:"list[STATUT]")->bool:
         return clientSocket.statut in statuts
 
     @classmethod
     def newSocketFilter(cls, clientSocket:"ClientSocket")->"bool":
-        statutList:"[Socket.STATUT]" = [
+        statutList:"list[STATUT]" = [
             Socket.STATUT.NEW,
             Socket.STATUT.UNTRUSTED,
             Socket.STATUT.TRUSTED
@@ -119,7 +119,7 @@ class ServerSocket(Socket):
         return cls.socketFilterByStatut(clientSocket=clientSocket, statuts=statutList)
 
     def manageNewClientSocketMsg(self):
-        clientSocketList:"[ClientSocket]" = list(filter(ServerSocket.newSocketFilter, self.clientSocketList))
+        clientSocketList:"list[ClientSocket]" = list(filter(ServerSocket.newSocketFilter, self.clientSocketList))
         if len(clientSocketList) > 0:
             rList, wList, xList = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)
             for clientSocket in rList:
