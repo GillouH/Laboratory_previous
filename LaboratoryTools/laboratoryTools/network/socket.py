@@ -106,16 +106,20 @@ class ServerSocket(Socket):
             clientSocket.timeStamp = time()
 
     @classmethod
-    def newClientFilter(cls, clientSocket:"ClientSocket")->"bool":
+    def socketFilterByStatut(cls, clientSocket:"ClientSocket", statuts:"[STATUT]")->bool:
+        return clientSocket.statut in statuts
+
+    @classmethod
+    def newSocketFilter(cls, clientSocket:"ClientSocket")->"bool":
         statutList:"[Socket.STATUT]" = [
             Socket.STATUT.NEW,
             Socket.STATUT.UNTRUSTED,
             Socket.STATUT.TRUSTED
         ]
-        return clientSocket.statut in statutList
+        return cls.socketFilterByStatut(clientSocket=clientSocket, statuts=statutList)
 
     def manageNewClientSocketMsg(self):
-        clientSocketList:"[ClientSocket]" = list(filter(ServerSocket.newClientFilter, self.clientSocketList))
+        clientSocketList:"[ClientSocket]" = list(filter(ServerSocket.newSocketFilter, self.clientSocketList))
         if len(clientSocketList) > 0:
             rList, wList, xList = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)
             for clientSocket in rList:
@@ -206,7 +210,7 @@ class ServerSocket(Socket):
 
     def checkClientSocketToDisconnect(self):
         def clientSocketToDisconnectFilter(clientSocket:"ClientSocket")->"bool":
-            return ServerSocket.newClientFilter(clientSocket=clientSocket) and clientSocket.timeStamp is not None and time() - clientSocket.timeStamp > ServerSocket.CONNECTION_TIMEOUT
+            return ServerSocket.newSocketFilter(clientSocket=clientSocket) and clientSocket.timeStamp is not None and time() - clientSocket.timeStamp > ServerSocket.CONNECTION_TIMEOUT
         for clientSocket in filter(clientSocketToDisconnectFilter, self.clientSocketList):
             logger.info(msg="Client disconnected: {}".format(clientSocket))
             clientSocket.close()
