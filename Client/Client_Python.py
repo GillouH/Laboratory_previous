@@ -1,6 +1,6 @@
+from laboratoryTools.network import serverAddress, Socket, ServerSocket, ClientSocket
 from tkinter import Tk, StringVar, Frame, Button, Label, Entry, Text, Scrollbar # Classes used
 from tkinter.font import Font
-from laboratoryTools.network import serverAddress, Socket, ServerSocket, ClientSocket
 from tkinter import NORMAL, DISABLED    # Widget State Constants
 from threading import Thread, get_ident
 from select import select
