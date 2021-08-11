@@ -33,6 +33,8 @@ class ClientWindow(Tk):
     MAX_PORT:"int" = 65535
     MAX_IP:"int" = 255
 
+    WEIGHT:"int" = 1
+
     class MSG_STATUT(Enum):
         SEND = auto()
         RECV = auto()
@@ -62,6 +64,9 @@ class ClientWindow(Tk):
         self.setTitle(info=ClientWindow.DISCONNECTED)
         self.createServerFrame(master=self, row=0, column=0)
         self.createMessageFrame(master=self, row=1, column=0)
+
+        self.grid_rowconfigure(index=1, weight=ClientWindow.WEIGHT)
+        self.grid_columnconfigure(index=0, weight=ClientWindow.WEIGHT)
 
         self.restoreData()
 
@@ -204,10 +209,10 @@ class ClientWindow(Tk):
         self.createPortFrame(master=frame, side=RIGHT)
         self.createIPFrame(master=frame, side=RIGHT)
 
-    def createShowTextFrame(self, master:"Widget", width:"int", row:"int", column:"int"):
-        frame:"Frame" = self.createFrame(master=master, row=row, column=column)
-        self.showText:"Text" = Text(master=frame, width=width-1, height=10, font=self.FONT, state=DISABLED)
-        self.showText.grid(row=0, column=0)
+    def createShowTextFrame(self, master:"Widget", row:"int", column:"int"):
+        frame:"Frame" = self.createFrame(master=master, row=row, column=column, sticky=NSEW)
+        self.showText:"Text" = Text(master=frame, height=10, font=self.FONT, state=DISABLED)
+        self.showText.grid(row=0, column=0, sticky=NSEW)
         scroll:"Scrollbar" = Scrollbar(master=frame, orient=VERTICAL, command=self.showText.yview)
         scroll.grid(row=0, column=1, sticky=NS)
         self.showText.config(yscrollcommand=scroll.set)
@@ -217,6 +222,9 @@ class ClientWindow(Tk):
         self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.LOG_INFO.name, foreground="#00FF00")
         self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.LOG_ERROR.name, foreground="#FF0000")
 
+        frame.grid_rowconfigure(index=0, weight=ClientWindow.WEIGHT)
+        frame.grid_columnconfigure(index=0, weight=ClientWindow.WEIGHT)
+
     def sendMessage(self):
         if self.isAbleToSend():
             msgToSend:"str" = self.inputTextVariable.get()
@@ -224,20 +232,24 @@ class ClientWindow(Tk):
             self.displayMsg(msg=">>{}".format(msgToSend), msgStatut=ClientWindow.MSG_STATUT.SEND)
             self.inputTextVariable.set(value="")
 
-    def createInputTextFrame(self, master:"Widget", width:"int", row:"int", column:"int"):
-        frame:"Frame" = self.createFrame(master=master, row=row, column=column)
-        buttonWidth:"int" = 5
-        self.inputTextEntry:"Entry" = Entry(master=frame, textvariable=self.inputTextVariable, width=width-buttonWidth, font=self.FONT)
-        self.inputTextEntry.grid(row=0, column=0)
-        self.sendButton:"Button" = Button(master=frame, text="Send", command=self.sendMessage, width=buttonWidth, font=self.FONT, state=DISABLED)
-        self.sendButton.grid(row=0, column=1)
+    def createInputTextFrame(self, master:"Widget", row:"int", column:"int"):
+        frame:"Frame" = self.createFrame(master=master, row=row, column=column, sticky=NSEW)
+        self.inputTextEntry:"Entry" = Entry(master=frame, textvariable=self.inputTextVariable, font=self.FONT)
+        self.inputTextEntry.grid(row=0, column=0, sticky=NSEW)
+        buttonText:"str" = "Send"
+        self.sendButton:"Button" = Button(master=frame, text=buttonText, command=self.sendMessage, width=len(buttonText)+1, font=self.FONT, state=DISABLED)
+        self.sendButton.grid(row=0, column=1, sticky=NSEW)
         self.inputTextEntry.bind(sequence="<Return>", func=lambda *paramList, **paramDict:self.sendButton.invoke())
 
+        frame.grid_columnconfigure(index=0, weight=ClientWindow.WEIGHT)
+
     def createMessageFrame(self, master:"Widget", row:"int", column:"int"):
-        frame:"Frame" = self.createFrame(master=master, row=row, column=column)
-        width:"int" = 75
-        self.createShowTextFrame(master=frame, width=width, row=0, column=0)
-        self.createInputTextFrame(master=frame, width=width, row=1, column=0)
+        frame:"Frame" = self.createFrame(master=master, row=row, column=column, sticky=NSEW)
+        self.createShowTextFrame(master=frame, row=0, column=0)
+        self.createInputTextFrame(master=frame, row=1, column=0)
+
+        frame.grid_rowconfigure(index=0, weight=ClientWindow.WEIGHT)
+        frame.grid_columnconfigure(index=0, weight=ClientWindow.WEIGHT)
 
     def getIP(self)->"str":
         return ".".join(textVariable.get() for textVariable in self.IPTextVariableList)
