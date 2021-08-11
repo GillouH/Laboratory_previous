@@ -4,13 +4,14 @@ from tkinter.font import Font
 from tkinter import NORMAL, DISABLED    # Widget State Constants
 from threading import Thread, currentThread
 from select import select
-from tkinter import END # Index Constant for Text
+from tkinter import INSERT, END # Index Constant for Text
 from tkinter import NSEW, NS    # Fill Direction Size Constant
 from tkinter import LEFT, RIGHT # Widget side display Constant
 from tkinter import VERTICAL    # Scrollbar Direction Constant
 from laboratoryTools.logging import logger
 from os.path import isfile
 from json import loads, dumps
+from enum import Enum, auto
 
 
 class ClientWindow(Tk):
@@ -31,6 +32,12 @@ class ClientWindow(Tk):
 
     MAX_PORT:"int" = 65535
     MAX_IP:"int" = 255
+
+    class MSG_STATUT(Enum):
+        SEND = auto()
+        RECV = auto()
+        LOG_INFO = auto()
+        LOG_ERROR = auto()
 
     def __init__(self):
         super().__init__()
@@ -80,11 +87,14 @@ class ClientWindow(Tk):
             frame.grid(row=row, column=column, sticky=sticky, padx=padx)
         return frame
 
-    def displayMsg(self, msg:"str"):
+    def displayMsg(self, msg:"str", msgStatut:"MSG_STATUT"):
+        startIndex = self.showText.index(index=INSERT)
         self.showText.config(state=NORMAL)
         self.showText.insert(index=END, chars=msg)
         self.showText.config(state=DISABLED)
         self.showText.see(index=END)
+        stopIndex = self.showText.index(index=INSERT)
+        self.showText.tag_add(msgStatut.name, startIndex, stopIndex)
 
     def listenServerThreadRunMethod(self):
         while self.isConnected:
@@ -94,7 +104,7 @@ class ClientWindow(Tk):
                     msgReceivedList:"list[str]" = socketWithMsg.recv_s(bufferSize=1024)
                     for msgReceived in msgReceivedList:
                         addr:"tuple[str,int]" = socketWithMsg.getpeername()
-                        self.displayMsg(msg="<<{}\n".format(msgReceived))
+                        self.displayMsg(msg="<<{}\n".format(msgReceived), msgStatut=ClientWindow.MSG_STATUT.RECV)
                         if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
                             self.disconnection()
                 except ConnectionResetError:
@@ -196,11 +206,16 @@ class ClientWindow(Tk):
         scroll.grid(row=0, column=1, sticky=NS)
         self.showText.config(yscrollcommand=scroll.set)
 
+        self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.SEND.name, foreground="#0000FF")
+        self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.RECV.name, foreground="#FF00FF")
+        self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.LOG_INFO.name, foreground="#00FF00")
+        self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.LOG_ERROR.name, foreground="#FF0000")
+
     def sendMessage(self):
         if self.isAbleToSend():
             msgToSend:"str" = self.inputTextVariable.get()
             self.clientSocket.send_s(data=msgToSend)
-            self.displayMsg(msg=">>{}\n".format(msgToSend))
+            self.displayMsg(msg=">>{}\n".format(msgToSend), msgStatut=ClientWindow.MSG_STATUT.SEND)
             self.inputTextVariable.set(value="")
 
     def createInputTextFrame(self, master:"Widget", width:"int", row:"int", column:"int"):
