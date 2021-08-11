@@ -267,10 +267,16 @@ class ClientSocket(Socket):
 
     def connect(self, address:"tuple[str,int]"):
         super().connect(address)
+        errorMsg = None
+        def unknowError(errorCode:"int"):
+            return "Unknown error. ({})".format(errorCode)
+        serverShutDownErrorMsg = "Server has shut down."
+        serverCloseConnectionErrorMsg = "Server closed the connection."
         abort, done = False, False
-        while not abort and not done:
+        accepted = False
+        while not abort and not done and errorMsg is None:
             if self.timeStamp is not None and time() - self.timeStamp > ClientSocket.CONNECTION_TIMEOUT:
-                abort = True
+                errorMsg = "Server take too much time to respond."
                 continue
             rList, wList, xList = select([self], [], [], ClientSocket.SELECT_TIMEOUT)
             for socketWithMsg in rList:
@@ -278,14 +284,17 @@ class ClientSocket(Socket):
                 msgReceivedType:"type" = type(msgReceived)
                 if msgReceivedType == bytes:
                     if msgReceived.decode() in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
-                        abort = True
+                        if msgReceived.decode() == ServerSocket.STOP_SERVER:
+                            errorMsg = serverShutDownErrorMsg
+                        elif msgReceived.decode() == Socket.MSG_DISCONNECTION:
+                            errorMsg = serverCloseConnectionErrorMsg
                     elif self.statut == Socket.STATUT.NEW:
                         logger.info(msg="Receiving RSA PUB KEY from {}".format(socketWithMsg))
                         try:
                             self.pubKey = rsa.key.PublicKey.load_pkcs1(keyfile=msgReceived)
                         except Exception as e:
                             logger.error(msg=e)
-                            abort = True
+                            errorMsg = "Enable to load RSA PUB KEY from server."
                         else:
                             self.key = SecurityManager.generateKey(nbChar=50)
                             logger.info(msg="Sending key to {}".format(socketWithMsg))
@@ -293,39 +302,52 @@ class ClientSocket(Socket):
                             self.statut = Socket.STATUT.UNTRUSTED
                             self.timeStamp = time()
                     else:
-                        abort=True
+                        errorMsg = unknowError(errorCode=1)
                 elif msgReceivedType == list and len(msgReceived) == 1:
                     msgReceived = msgReceived[0]
                     if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
-                        abort = True
-                    elif self.statut == Socket.STATUT.UNTRUSTED and msgReceived == ServerSocket.ASK_PASSWORD:
-                        logger.info(msg="Receiving PASSWORD request from {}".format(socketWithMsg))
-                        logger.info(msg="Sending PASSWORD to {}".format(socketWithMsg))
-                        self.send_s(data=PASSWORD)
-                        self.statut = Socket.STATUT.TRUSTED
-                        self.timeStamp = time()
-                    elif self.statut == Socket.STATUT.TRUSTED and msgReceived == ServerSocket.ASK_NAME:
-                        logger.info(msg="Receiving name request from {}".format(socketWithMsg))
-                        logger.info(msg="Sending name to {}".format(socketWithMsg))
-                        self.send_s(data=self.localName)
-                        self.statut = Socket.STATUT.OK
-                        self.timeStamp = None
-                    elif self.statut == Socket.STATUT.OK and msgReceived == ServerSocket.ACCEPTED:
-                        logger.info(msg="Ask name {}".format(socketWithMsg))
-                        self.send_s(data=ServerSocket.ASK_NAME)
+                        if msgReceived == ServerSocket.STOP_SERVER:
+                            errorMsg = serverShutDownErrorMsg
+                        elif msgReceived == Socket.MSG_DISCONNECTION:
+                            errorMsg = serverCloseConnectionErrorMsg
+                    elif self.statut == Socket.STATUT.UNTRUSTED:
+                        if msgReceived == ServerSocket.ASK_PASSWORD:
+                            logger.info(msg="Receiving PASSWORD request from {}".format(socketWithMsg))
+                            logger.info(msg="Sending PASSWORD to {}".format(socketWithMsg))
+                            self.send_s(data=PASSWORD)
+                            self.statut = Socket.STATUT.TRUSTED
+                            self.timeStamp = time()
+                        else:
+                            errorMsg = "Server didn't ask for PASSWORD."
+                    elif self.statut == Socket.STATUT.TRUSTED:
+                        if msgReceived == ServerSocket.ASK_NAME:
+                            logger.info(msg="Receiving name request from {}".format(socketWithMsg))
+                            logger.info(msg="Sending name to {}".format(socketWithMsg))
+                            self.send_s(data=self.localName)
+                            self.statut = Socket.STATUT.OK
+                            self.timeStamp = None
+                        else:
+                            errorMsg = "Server didn't ask for name."
+                    elif self.statut == Socket.STATUT.OK and not accepted:
+                        if msgReceived == ServerSocket.ACCEPTED:
+                            accepted = True
+                            logger.info(msg="Ask name {}".format(socketWithMsg))
+                            self.send_s(data=ServerSocket.ASK_NAME)
+                        else:
+                            errorMsg = "Server didn't accept the connection."
                     elif self.statut == Socket.STATUT.OK:
                         logger.info(msg="Receiving name from {}".format(socketWithMsg))
                         self.name = msgReceived
                         logger.info(msg="Connected to {}".format(socketWithMsg))
                         done = True
-                    else:
-                        abort = True
                 else:
-                    abort = True
-        if abort:
-            self.close()
-            raise ConnectionError("Enable to connect to the server.")
+                    errorMsg = unknowError(errorCode=2)
 
+        if errorMsg is not None:
+            errorMsg = "Enable to connect to the server.{} {}".format(" {}".format(errorMsg), self)
+            self.close()
+            raise ConnectionError(errorMsg)
+        
     def recv_s(self, bufferSize:"int")->"list[str]":
         if self.key is None:
             raise OSError("{}.{} can't be used until key argument is None. Use {} method instead.".format(self.__class__.__qualname__, self.recv_s.__name__, self.recv.__name__))

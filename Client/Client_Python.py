@@ -90,7 +90,7 @@ class ClientWindow(Tk):
     def displayMsg(self, msg:"str", msgStatut:"MSG_STATUT"):
         startIndex = self.showText.index(index=INSERT)
         self.showText.config(state=NORMAL)
-        self.showText.insert(index=END, chars=msg)
+        self.showText.insert(index=END, chars="{}\n".format(msg))
         self.showText.config(state=DISABLED)
         self.showText.see(index=END)
         stopIndex = self.showText.index(index=INSERT)
@@ -104,7 +104,7 @@ class ClientWindow(Tk):
                     msgReceivedList:"list[str]" = socketWithMsg.recv_s(bufferSize=1024)
                     for msgReceived in msgReceivedList:
                         addr:"tuple[str,int]" = socketWithMsg.getpeername()
-                        self.displayMsg(msg="<<{}\n".format(msgReceived), msgStatut=ClientWindow.MSG_STATUT.RECV)
+                        self.displayMsg(msg="<<{}".format(msgReceived), msgStatut=ClientWindow.MSG_STATUT.RECV)
                         if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
                             self.disconnection()
                 except ConnectionResetError:
@@ -112,13 +112,15 @@ class ClientWindow(Tk):
 
     def connectionThreadRunMethod(self):
         try:
+            ip, port = self.getIP(), int(self.portTextVariable.get())
+            self.displayMsg(msg="Connection to {}:{}...".format(ip, port), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
             for widget in self.serverConfigWidget:
                 widget.config(state="readonly")
             self.connectButton.config(text=ClientWindow.CONNECTING, state=DISABLED)
             self.setTitle(info=ClientWindow.CONNECTING)
 
             self.clientSocket:"ClientSocket" = ClientSocket(name=self.nameTextVariable.get())
-            self.clientSocket.connect(address=(self.getIP(), int(self.portTextVariable.get())))
+            self.clientSocket.connect(address=(ip, port))
 
             self.connectButton.config(text=ClientWindow.DISCONNECTION, command=self.disconnection, state=NORMAL)
             self.setTitle(info=ClientWindow.CONNECTED)
@@ -128,6 +130,7 @@ class ClientWindow(Tk):
             self.listenServerThread:"Thread" = Thread(target=self.listenServerThreadRunMethod)
             self.listenServerThread.start()
             self.inputTextEntry.focus()
+            self.displayMsg(msg="Connected to {}.".format(self.clientSocket.name), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
         except Exception as e:
             logger.error(msg=e)
             for widget in self.serverConfigWidget:
@@ -136,8 +139,11 @@ class ClientWindow(Tk):
             self.setTitle(info=ClientWindow.DISCONNECTED)
             self.isConnected = False
             self.updateSendButtonState()
+            self.displayMsg(msg=e, msgStatut=ClientWindow.MSG_STATUT.LOG_ERROR)
 
     def disconnection(self):
+        logger.info(msg="Disconnection from {}".format(self.clientSocket))
+        self.displayMsg(msg="Disconnection from {}.".format(self.clientSocket.name), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
         self.isConnected = False
         if currentThread() != self.listenServerThread:
             self.listenServerThread.join()
@@ -215,7 +221,7 @@ class ClientWindow(Tk):
         if self.isAbleToSend():
             msgToSend:"str" = self.inputTextVariable.get()
             self.clientSocket.send_s(data=msgToSend)
-            self.displayMsg(msg=">>{}\n".format(msgToSend), msgStatut=ClientWindow.MSG_STATUT.SEND)
+            self.displayMsg(msg=">>{}".format(msgToSend), msgStatut=ClientWindow.MSG_STATUT.SEND)
             self.inputTextVariable.set(value="")
 
     def createInputTextFrame(self, master:"Widget", width:"int", row:"int", column:"int"):
