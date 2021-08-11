@@ -7,6 +7,7 @@ from select import select
 import rsa
 from time import time
 from laboratoryTools.securityManager import SecurityManager
+from threading import Thread
 
 
 class Socket(socket):
@@ -16,7 +17,7 @@ class Socket(socket):
         TRUSTED = auto()    # password checked - waiting for name
         OK = auto() # everything is checked
 
-    CONNECTION_TIMEOUT:"float" = None
+    CONNECTION_TIMEOUT:"float" = 1
     SELECT_TIMEOUT:"float" = 0.05
     MSG_DISCONNECTION:"str" = ""
     END_MSG:"str" = "\0"
@@ -79,7 +80,6 @@ class Socket(socket):
         return s
 
 class ServerSocket(Socket):
-    CONNECTION_TIMEOUT:"float" = 1
     ASK_PASSWORD:"str" = "PASSWORD ?"
     ASK_NAME:"str" = "NAME ?"
     ACCEPTED:"str" = "ACCEPTED"
@@ -93,18 +93,21 @@ class ServerSocket(Socket):
     def getIPPort(self)->"tuple[str,int]":
         return self.getsockname()
 
+    def sendRSAPubKey(self, clientSocket:"ClientSocket"):
+        clientSocket.pubKey, clientSocket.privKey = rsa.newkeys(nbits=2048, poolsize=8)
+        logger.info(msg="Sending RSA PUB KEY to {}".format(clientSocket))
+        clientSocket.send(clientSocket.pubKey.save_pkcs1())
+        clientSocket.timeStamp = time()
+
     def manageNewConnection(self):
         rList, wList, xList = select([self], [], [], ServerSocket.SELECT_TIMEOUT)
         for socketWaitingForConnection in rList:
-            pubKey, privKey = rsa.newkeys(nbits=2048, poolsize=8)
             socketConnected, addr = socketWaitingForConnection.accept()
             clientSocket:"ClientSocket" = ClientSocket(socketSrc=socketConnected)
-            logger.info(msg="Client connected {}".format(clientSocket))
             self.clientSocketList.append(clientSocket)
-            clientSocket.pubKey, clientSocket.privKey = pubKey, privKey
-            logger.info(msg="Sending RSA PUB KEY to {}".format(clientSocket))
-            clientSocket.send(clientSocket.pubKey.save_pkcs1())
-            clientSocket.timeStamp = time()
+            logger.info(msg="Client connected {}".format(clientSocket))
+            thread:"Thread" = Thread(target=self.sendRSAPubKey, kwargs={"clientSocket": clientSocket})
+            thread.start()
 
     @classmethod
     def socketFilterByStatut(cls, clientSocket:"ClientSocket", statuts:"list[STATUT]")->bool:
@@ -250,8 +253,6 @@ class ServerSocket(Socket):
 
 
 class ClientSocket(Socket):
-    CONNECTION_TIMEOUT:"float" = 10
-
     def __init__(self, name:"str"=None, socketSrc:"socket"=None):
         super().__init__(name=None, socketSrc=socketSrc)
         self.localName:"str" = name
@@ -266,7 +267,6 @@ class ClientSocket(Socket):
 
     def connect(self, address:"tuple[str,int]"):
         super().connect(address)
-        self.timeStamp = time()
         abort, done = False, False
         while not abort and not done:
             if self.timeStamp is not None and time() - self.timeStamp > ClientSocket.CONNECTION_TIMEOUT:
