@@ -11,7 +11,7 @@ from tkinter import VERTICAL    # Scrollbar Direction Constant
 from laboratoryTools.logging import logger
 from os.path import isfile
 from json import loads, dumps
-from enum import Enum, auto
+from enum import Enum
 
 
 class ClientWindow(Tk):
@@ -41,10 +41,10 @@ class ClientWindow(Tk):
     }
 
     class MSG_STATUT(Enum):
-        SEND = auto()
-        RECV = auto()
-        LOG_INFO = auto()
-        LOG_ERROR = auto()
+        SEND = "#0000FF"
+        RECV = "#FF00FF"
+        LOG_INFO = "#00A038"
+        LOG_ERROR = "#FF0000"
 
     def __init__(self):
         super().__init__()
@@ -226,10 +226,8 @@ class ClientWindow(Tk):
         scroll.grid(row=0, column=1, sticky=NS)
         self.showText.config(yscrollcommand=scroll.set)
 
-        self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.SEND.name, foreground="#0000FF")
-        self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.RECV.name, foreground="#FF00FF")
-        self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.LOG_INFO.name, foreground="#00A038")
-        self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.LOG_ERROR.name, foreground="#FF0000")
+        for msgStatut in ClientWindow.MSG_STATUT:
+            self.showText.tag_config(tagName=msgStatut.name, foreground=msgStatut.value)
 
         frame.grid_rowconfigure(index=0, weight=ClientWindow.WEIGHT)
         frame.grid_columnconfigure(index=0, weight=ClientWindow.WEIGHT)
