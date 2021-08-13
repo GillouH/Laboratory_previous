@@ -35,6 +35,11 @@ class ClientWindow(Tk):
 
     WEIGHT:"int" = 1
 
+    ErrNoMsgDict:"dict[int,str]" = {
+        10060: "The IP address seems wrong.",
+        10061: "The Port seems wrong."
+    }
+
     class MSG_STATUT(Enum):
         SEND = auto()
         RECV = auto()
@@ -144,7 +149,11 @@ class ClientWindow(Tk):
             self.setTitle(info=ClientWindow.DISCONNECTED)
             self.isConnected = False
             self.updateSendButtonState()
-            self.displayMsg(msg=e, msgStatut=ClientWindow.MSG_STATUT.LOG_ERROR)
+            errorMsg = "{} {}".format(
+                ClientSocket.ConnectionUnableErrorMsg,
+                ClientWindow.ErrNoMsgDict[e.errno] if e.errno in ClientWindow.ErrNoMsgDict.keys() else e
+            )
+            self.displayMsg(msg=errorMsg, msgStatut=ClientWindow.MSG_STATUT.LOG_ERROR)
 
     def disconnection(self):
         logger.info(msg="Disconnection from {}".format(self.clientSocket))
@@ -219,7 +228,7 @@ class ClientWindow(Tk):
 
         self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.SEND.name, foreground="#0000FF")
         self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.RECV.name, foreground="#FF00FF")
-        self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.LOG_INFO.name, foreground="#00FF00")
+        self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.LOG_INFO.name, foreground="#00A038")
         self.showText.tag_config(tagName=ClientWindow.MSG_STATUT.LOG_ERROR.name, foreground="#FF0000")
 
         frame.grid_rowconfigure(index=0, weight=ClientWindow.WEIGHT)

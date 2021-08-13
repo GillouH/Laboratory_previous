@@ -253,6 +253,8 @@ class ServerSocket(Socket):
 
 
 class ClientSocket(Socket):
+    ConnectionUnableErrorMsg:"str" = "Unable to connect to the server."
+
     def __init__(self, name:"str"=None, socketSrc:"socket"=None):
         super().__init__(name=None, socketSrc=socketSrc)
         self.localName:"str" = name
@@ -267,16 +269,16 @@ class ClientSocket(Socket):
 
     def connect(self, address:"tuple[str,int]"):
         super().connect(address)
-        errorMsg = None
+        errorCauseMsg = None
         def unknowError(errorCode:"int"):
             return "Unknown error. ({})".format(errorCode)
         serverShutDownErrorMsg = "Server has shut down."
         serverCloseConnectionErrorMsg = "Server closed the connection."
         abort, done = False, False
         accepted = False
-        while not abort and not done and errorMsg is None:
+        while not abort and not done and errorCauseMsg is None:
             if self.timeStamp is not None and time() - self.timeStamp > ClientSocket.CONNECTION_TIMEOUT:
-                errorMsg = "Server take too much time to respond."
+                errorCauseMsg = "Server take too much time to respond."
                 continue
             rList, wList, xList = select([self], [], [], ClientSocket.SELECT_TIMEOUT)
             for socketWithMsg in rList:
@@ -285,16 +287,16 @@ class ClientSocket(Socket):
                 if msgReceivedType == bytes:
                     if msgReceived.decode() in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
                         if msgReceived.decode() == ServerSocket.STOP_SERVER:
-                            errorMsg = serverShutDownErrorMsg
+                            errorCauseMsg = serverShutDownErrorMsg
                         elif msgReceived.decode() == Socket.MSG_DISCONNECTION:
-                            errorMsg = serverCloseConnectionErrorMsg
+                            errorCauseMsg = serverCloseConnectionErrorMsg
                     elif self.statut == Socket.STATUT.NEW:
                         logger.info(msg="Receiving RSA PUB KEY from {}".format(socketWithMsg))
                         try:
                             self.pubKey = rsa.key.PublicKey.load_pkcs1(keyfile=msgReceived)
                         except Exception as e:
                             logger.error(msg=e)
-                            errorMsg = "Enable to load RSA PUB KEY from server."
+                            errorCauseMsg = "Enable to load RSA PUB KEY from server."
                         else:
                             self.key = SecurityManager.generateKey(nbChar=50)
                             logger.info(msg="Sending key to {}".format(socketWithMsg))
@@ -302,14 +304,14 @@ class ClientSocket(Socket):
                             self.statut = Socket.STATUT.UNTRUSTED
                             self.timeStamp = time()
                     else:
-                        errorMsg = unknowError(errorCode=1)
+                        errorCauseMsg = unknowError(errorCode=1)
                 elif msgReceivedType == list and len(msgReceived) == 1:
                     msgReceived = msgReceived[0]
                     if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
                         if msgReceived == ServerSocket.STOP_SERVER:
-                            errorMsg = serverShutDownErrorMsg
+                            errorCauseMsg = serverShutDownErrorMsg
                         elif msgReceived == Socket.MSG_DISCONNECTION:
-                            errorMsg = serverCloseConnectionErrorMsg
+                            errorCauseMsg = serverCloseConnectionErrorMsg
                     elif self.statut == Socket.STATUT.UNTRUSTED:
                         if msgReceived == ServerSocket.ASK_PASSWORD:
                             logger.info(msg="Receiving PASSWORD request from {}".format(socketWithMsg))
@@ -318,7 +320,7 @@ class ClientSocket(Socket):
                             self.statut = Socket.STATUT.TRUSTED
                             self.timeStamp = time()
                         else:
-                            errorMsg = "Server didn't ask for PASSWORD."
+                            errorCauseMsg = "Server didn't ask for PASSWORD."
                     elif self.statut == Socket.STATUT.TRUSTED:
                         if msgReceived == ServerSocket.ASK_NAME:
                             logger.info(msg="Receiving name request from {}".format(socketWithMsg))
@@ -327,27 +329,27 @@ class ClientSocket(Socket):
                             self.statut = Socket.STATUT.OK
                             self.timeStamp = None
                         else:
-                            errorMsg = "Server didn't ask for name."
+                            errorCauseMsg = "Server didn't ask for name."
                     elif self.statut == Socket.STATUT.OK and not accepted:
                         if msgReceived == ServerSocket.ACCEPTED:
                             accepted = True
                             logger.info(msg="Ask name {}".format(socketWithMsg))
                             self.send_s(data=ServerSocket.ASK_NAME)
                         else:
-                            errorMsg = "Server didn't accept the connection."
+                            errorCauseMsg = "Server didn't accept the connection."
                     elif self.statut == Socket.STATUT.OK:
                         logger.info(msg="Receiving name from {}".format(socketWithMsg))
                         self.name = msgReceived
                         logger.info(msg="Connected to {}".format(socketWithMsg))
                         done = True
                 else:
-                    errorMsg = unknowError(errorCode=2)
+                    errorCauseMsg = unknowError(errorCode=2)
 
-        if errorMsg is not None:
-            errorMsg = "Enable to connect to the server.{} {}".format(" {}".format(errorMsg), self)
+        if errorCauseMsg is not None:
+            errorMsg = "{}{} {}".format(ClientSocket.ConnectionUnableErrorMsg, " {}".format(errorCauseMsg), self)
             self.close()
             raise ConnectionError(errorMsg)
-        
+
     def recv_s(self, bufferSize:"int")->"list[str]":
         if self.key is None:
             raise OSError("{}.{} can't be used until key argument is None. Use {} method instead.".format(self.__class__.__qualname__, self.recv_s.__name__, self.recv.__name__))
