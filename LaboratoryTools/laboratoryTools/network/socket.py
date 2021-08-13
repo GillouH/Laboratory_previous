@@ -253,7 +253,7 @@ class ServerSocket(Socket):
 
 
 class ClientSocket(Socket):
-    ConnectionUnableErrorMsg:"str" = "Unable to connect to the server."
+    ConnectionUnableErrorMsg:"str" = "The connection to the server is impossible."
 
     def __init__(self, name:"str"=None, socketSrc:"socket"=None):
         super().__init__(name=None, socketSrc=socketSrc)
