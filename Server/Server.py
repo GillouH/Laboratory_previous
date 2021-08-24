@@ -1,6 +1,5 @@
-from laboratoryTools.network import Socket, ServerSocket, ClientSocket
+from laboratoryTools.network import ServerSocket, ClientSocket
 from laboratoryTools.logging import logger
-from select import select
 
 
 class Server:
