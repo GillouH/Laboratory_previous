@@ -42,13 +42,16 @@ class Socket(socket):
     def getIPPort(self)->"NotImplementedError":
         raise NotImplementedError()
 
+    def isClosed(self)->"bool":
+        return self.fileno() == -1
+
     def __repr__(self)->"str":
         """Wrap __repr__() to reveal the real class name and socket
         address(es).
         """
         s:"str" = "<{} [{}]{}{} fd={}, family={}, type={}, proto={}".format(
             self.__class__.__qualname__,
-            "close" if self._closed else "open",
+            "close" if self.isClosed() else "open",
             "" if self.name is None else " name={}".format(self.name),
             "" if self.statut is None else " statut={}".format(self.statut.name),
             self.fileno(),
@@ -56,7 +59,7 @@ class Socket(socket):
             self.type.__str__(),
             self.proto.__str__()
         )
-        if not self._closed:
+        if not self.isClosed():
             try:
                 laddr:"tuple[str,int]" = self.getsockname()
                 if laddr:
