@@ -1,4 +1,4 @@
-from logging import StreamHandler, Formatter, FileHandler
+from logging import Logger, StreamHandler, Formatter, FileHandler
 from logging import DEBUG, INFO
 from os.path import isdir
 from os import makedirs

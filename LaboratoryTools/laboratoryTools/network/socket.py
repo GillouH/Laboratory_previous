@@ -1,4 +1,5 @@
 from socket import socket, AF_INET, SOCK_STREAM, dup, error
+from typing import Union
 from laboratoryTools.network.core import IP
 from laboratoryTools.network.resources import PORT, PASSWORD
 from laboratoryTools.logging import logger
@@ -26,7 +27,7 @@ class Socket(socket):
     def createSocket(cls)->"socket":
         return socket(family=AF_INET, type=SOCK_STREAM)
 
-    def __init__(self, name:"str"=None, socketSrc:"socket"=None)->"TypeError":
+    def __init__(self, name:"str"=None, socketSrc:"socket"=None):
         # Make this class an bastract class
         if self.__class__ == Socket:
             raise TypeError("Can't instantiate abstract class {}".format(self.__class__.__qualname__))
@@ -34,8 +35,8 @@ class Socket(socket):
             if socketSrc is None:
                 socketSrc = Socket.createSocket()
             super().__init__(family=socketSrc.family, type=socketSrc.type, proto=socketSrc.proto, fileno=dup(socketSrc.fileno()))
-            self.name:"str" = name
-            self.statut:"STATUT" = None
+            self.name:"Union[str,None]" = name
+            self.statut:"Union[Socket.STATUT,None]" = None
 
     # méthode abstraite
     def getIPPort(self)->"NotImplementedError":
@@ -51,10 +52,10 @@ class Socket(socket):
             "" if self.name is None else " name={}".format(self.name),
             "" if self.statut is None else " statut={}".format(self.statut.name),
             self.fileno(),
-            str(object=self.family),
-            str(object=self.type),
-            str(object=self.proto)
-            )
+            self.family.__str__(),
+            self.type.__str__(),
+            self.proto.__str__()
+        )
         if not self._closed:
             try:
                 laddr:"tuple[str,int]" = self.getsockname()
@@ -110,12 +111,12 @@ class ServerSocket(Socket):
             thread.start()
 
     @classmethod
-    def socketFilterByStatut(cls, clientSocket:"ClientSocket", statuts:"list[STATUT]")->bool:
+    def socketFilterByStatut(cls, clientSocket:"ClientSocket", statuts:"list[Socket.STATUT]")->bool:
         return clientSocket.statut in statuts
 
     @classmethod
     def newSocketFilter(cls, clientSocket:"ClientSocket")->"bool":
-        statutList:"list[STATUT]" = [
+        statutList:"list[Socket.STATUT]" = [
             Socket.STATUT.NEW,
             Socket.STATUT.UNTRUSTED,
             Socket.STATUT.TRUSTED
@@ -129,9 +130,8 @@ class ServerSocket(Socket):
             for clientSocket in rList:
                 try:
                     abort:bool = False
-                    msgReceived:"Union[bytes,list[str]]" = clientSocket.recv(1024) if clientSocket.key is None else clientSocket.recv_s(bufferSize=1024)
-                    msgReceivedType:"type" = type(msgReceived)
-                    if msgReceivedType == bytes:
+                    msgReceived:"Union[bytes,list[str],str]" = clientSocket.recv(1024) if clientSocket.key is None else clientSocket.recv_s(bufferSize=1024)
+                    if isinstance(msgReceived, bytes):
                         if msgReceived == Socket.MSG_DISCONNECTION.encode():
                             abort = True
                         elif clientSocket.statut == Socket.STATUT.NEW:
@@ -148,7 +148,7 @@ class ServerSocket(Socket):
                                 clientSocket.timeStamp = time()
                         else:
                             abort = True
-                    elif msgReceivedType == list and len(msgReceived) == 1:
+                    elif isinstance(msgReceived, list) and len(msgReceived) == 1:
                         msgReceived = msgReceived[0]
                         if msgReceived == Socket.MSG_DISCONNECTION:
                             abort = True
@@ -249,7 +249,7 @@ class ServerSocket(Socket):
         self.close()
 
     def msgReceivedCallback(self, clientSocket:"ClientSocket", msg:"str")->"NotImplementedError":
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 class ClientSocket(Socket):
@@ -257,12 +257,12 @@ class ClientSocket(Socket):
 
     def __init__(self, name:"str"=None, socketSrc:"socket"=None):
         super().__init__(name=None, socketSrc=socketSrc)
-        self.localName:"str" = name
-        self.statut:"STATUT" = Socket.STATUT.NEW
-        self.pubKey:"rsa.key.PublicKey" = None
-        self.privKey:"rsa.key.PrivateKey" = None
-        self.key:"str" = None
-        self.timeStamp:"float" = None
+        self.localName:"Union[str,None]" = name
+        self.statut:"Socket.STATUT" = Socket.STATUT.NEW
+        self.pubKey:"Union[rsa.PublicKey,None]" = None
+        self.privKey:"Union[rsa.PrivateKey,None]" = None
+        self.key:"Union[str,None]" = None
+        self.timeStamp:"Union[float,None]" = None
 
     def getIPPort(self)->"tuple[str,int]":
         return self.getpeername()
@@ -283,8 +283,7 @@ class ClientSocket(Socket):
             rList, wList, xList = select([self], [], [], ClientSocket.SELECT_TIMEOUT)
             for socketWithMsg in rList:
                 msgReceived:"Union[bytes,list[str]]" = socketWithMsg.recv(1024) if self.key is None else socketWithMsg.recv_s(bufferSize=1024)
-                msgReceivedType:"type" = type(msgReceived)
-                if msgReceivedType == bytes:
+                if isinstance(msgReceived, bytes):
                     if msgReceived.decode() in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
                         if msgReceived.decode() == ServerSocket.STOP_SERVER:
                             errorCauseMsg = serverShutDownErrorMsg
@@ -293,7 +292,7 @@ class ClientSocket(Socket):
                     elif self.statut == Socket.STATUT.NEW:
                         logger.info(msg="Receiving RSA PUB KEY from {}".format(socketWithMsg))
                         try:
-                            self.pubKey = rsa.key.PublicKey.load_pkcs1(keyfile=msgReceived)
+                            self.pubKey = rsa.PublicKey.load_pkcs1(keyfile=msgReceived)
                         except Exception as e:
                             logger.error(msg=e)
                             errorCauseMsg = "Enable to load RSA PUB KEY from server."
