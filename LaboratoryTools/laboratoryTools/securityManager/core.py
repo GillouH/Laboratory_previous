@@ -2,7 +2,7 @@ from laboratoryTools.logging import logger
 
 
 class SecurityManager:
-    def __init__(self)->"TypeError":
+    def __init__(self):
         raise TypeError("Can't instantiate abstract class {}".format(self.__class__.__qualname__))
 
     @classmethod

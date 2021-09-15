@@ -39,7 +39,7 @@ class Socket(socket):
             self.statut:"Union[Socket.STATUT,None]" = None
 
     # méthode abstraite
-    def getIPPort(self)->"NotImplementedError":
+    def getIPPort(self):
         raise NotImplementedError()
 
     def isClosed(self)->"bool":
@@ -251,7 +251,7 @@ class ServerSocket(Socket):
         logger.info(msg="Server shutdown {}".format(self))
         self.close()
 
-    def msgReceivedCallback(self, clientSocket:"ClientSocket", msg:"str")->"NotImplementedError":
+    def msgReceivedCallback(self, clientSocket:"ClientSocket", msg:"str"):
         raise NotImplementedError()
 
 
