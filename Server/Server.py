@@ -18,8 +18,8 @@ class Server:
         self.serverSocket.stop()
 
 if __name__ == "__main__":
+    server:"Server" = Server(name="Laboratory")
     try:
-        server:"Server" = Server(name="Laboratory")
         server.start()
     except Exception as e:
         logger.error(msg=e)
