@@ -104,9 +104,9 @@ class ServerSocket(Socket):
         clientSocket.timeStamp = time()
 
     def manageNewConnection(self):
-        rList, wList, xList = select([self], [], [], ServerSocket.SELECT_TIMEOUT)
+        rList:"list[ClientSocket]" = select([self], [], [], ServerSocket.SELECT_TIMEOUT)[0]
         for socketWaitingForConnection in rList:
-            socketConnected, addr = socketWaitingForConnection.accept()
+            socketConnected:"socket" = socketWaitingForConnection.accept()[0]
             clientSocket:"ClientSocket" = ClientSocket(socketSrc=socketConnected)
             self.clientSocketList.append(clientSocket)
             logger.info(msg="Client connected {}".format(clientSocket))
@@ -129,7 +129,7 @@ class ServerSocket(Socket):
     def manageNewClientSocketMsg(self):
         clientSocketList:"list[ClientSocket]" = list(filter(ServerSocket.newSocketFilter, self.clientSocketList))
         if len(clientSocketList) > 0:
-            rList, wList, xList = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)
+            rList:"list[ClientSocket]" = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)[0]
             for clientSocket in rList:
                 try:
                     abort:bool = False
@@ -188,7 +188,7 @@ class ServerSocket(Socket):
     def manageOKClientSocketMsg(self)->"bool":
         clientSocketList = list(filter(lambda clientSocket: clientSocket.statut == Socket.STATUT.OK, self.clientSocketList))
         if len(clientSocketList) > 0:
-            rList, wList, xList = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)
+            rList:"list[ClientSocket]" = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)[0]
             for clientSocket in rList:
                 try:
                     msgReceivedList:"list[str]" = clientSocket.recv_s(bufferSize=1024)
@@ -283,7 +283,7 @@ class ClientSocket(Socket):
             if self.timeStamp is not None and time() - self.timeStamp > ClientSocket.CONNECTION_TIMEOUT:
                 errorCauseMsg = "Server take too much time to respond."
                 continue
-            rList, wList, xList = select([self], [], [], ClientSocket.SELECT_TIMEOUT)
+            rList:"list[ClientSocket]" = select([self], [], [], ClientSocket.SELECT_TIMEOUT)[0]
             for socketWithMsg in rList:
                 msgReceived:"Union[bytes,list[str]]" = socketWithMsg.recv(1024) if self.key is None else socketWithMsg.recv_s(bufferSize=1024)
                 if isinstance(msgReceived, bytes):
@@ -307,7 +307,7 @@ class ClientSocket(Socket):
                             self.timeStamp = time()
                     else:
                         errorCauseMsg = unknowError(errorCode=1)
-                elif msgReceivedType == list and len(msgReceived) == 1:
+                elif isinstance(msgReceived, list) and len(msgReceived) == 1:
                     msgReceived = msgReceived[0]
                     if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
                         if msgReceived == ServerSocket.STOP_SERVER:

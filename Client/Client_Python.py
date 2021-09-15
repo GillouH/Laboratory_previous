@@ -117,12 +117,11 @@ class ClientWindow(Tk):
 
     def listenServerThreadRunMethod(self):
         while self.isConnected:
-            socketList, wList, xList = select([self.clientSocket], [], [], ClientSocket.SELECT_TIMEOUT)
+            socketList:"list[ClientSocket]" = select([self.clientSocket], [], [], ClientSocket.SELECT_TIMEOUT)[0]
             for socketWithMsg in socketList:
                 try:
                     msgReceivedList:"list[str]" = socketWithMsg.recv_s(bufferSize=1024)
                     for msgReceived in msgReceivedList:
-                        addr:"tuple[str,int]" = socketWithMsg.getpeername()
                         self.displayMsg(msg="<<{}".format(msgReceived), msgStatut=ClientWindow.MSG_STATUT.RECV)
                         if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
                             self.disconnection()

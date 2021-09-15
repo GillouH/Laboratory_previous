@@ -4,9 +4,9 @@ from laboratoryTools.logging import logger
 
 def getIP()->"str":
     ip:"str" = "127.0.0.1"
-    for family_, type_, proto_, canonname_, sockaddr_ in getaddrinfo(host=gethostname(), port=None):
-        if family_ == AF_INET:
-            ip, port_ = sockaddr_
+    for addrInfo in getaddrinfo(host=gethostname(), port=None):
+        if addrInfo[0] == AF_INET:
+            ip:"str" = addrInfo[4][0]
             break
     return ip
 
