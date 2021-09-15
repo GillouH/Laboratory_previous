@@ -20,9 +20,12 @@ logger.setLevel(level=DEBUG)
 logger.addHandler(hdlr=streamHandler)
 logger.addHandler(hdlr=fileHandler)
 
+def displayError(error:"Exception")->"str":
+    return "{}: {}".format(error.__class__.__name__, error.with_traceback(error.__traceback__))
+
 
 if __name__ == "__main__":
     try:
         pass
     except Exception as e:
-        logger.error(msg=e)
+        logger.error(msg=displayError(error=e))

@@ -1,4 +1,4 @@
-from laboratoryTools.logging import logger
+from laboratoryTools.logging import logger, displayError
 
 
 class SecurityManager:
@@ -32,4 +32,4 @@ if __name__ == "__main__":
     try:
         pass
     except Exception as e:
-        logger.error(msg=e)
+        logger.error(msg=displayError(error=e))

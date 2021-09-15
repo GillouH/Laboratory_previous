@@ -9,7 +9,7 @@ from tkinter import INSERT, END # Index Constant for Text
 from tkinter import NSEW, NS    # Fill Direction Size Constant
 from tkinter import LEFT, RIGHT # Widget side display Constant
 from tkinter import VERTICAL    # Scrollbar Direction Constant
-from laboratoryTools.logging import logger
+from laboratoryTools.logging import logger, displayError
 from os.path import isfile
 from json import loads, dumps
 from enum import Enum
@@ -150,7 +150,7 @@ class ClientWindow(Tk):
             self.inputTextEntry.focus()
             self.displayMsg(msg="Connected to {}.".format(self.clientSocket.name), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
         except (ConnectionError, TimeoutError) as e:
-            logger.error(msg=e)
+            logger.error(msg=displayError(error=e))
             for widget in self.serverConfigEntry:
                 widget.config(state=NORMAL)
             self.connectButton.config(text=ClientWindow.CONNECTION, state=NORMAL)
@@ -187,7 +187,7 @@ class ClientWindow(Tk):
             number:"int" = int(input)
             return number >= 0 and number <= max
         except Exception as e:
-            logger.error(msg=e)
+            logger.error(msg=displayError(error=e))
             return input == ""
     def checkPortInput(self, input:"str")->"bool":
         return self.checkInputIsInt(input=input, max=ClientWindow.MAX_PORT)
@@ -290,7 +290,7 @@ class ClientWindow(Tk):
             try:
                 data:"dict[str,str]" = loads(s=content)
             except Exception as e:
-                logger.error(msg=e)
+                logger.error(msg=displayError(error=e))
                 self.restoreDefaultData()
                 return
             keySetDefaultList:"list[tuple[str, Callable[[str],None], Callable[[],None]]]" = [
@@ -303,7 +303,7 @@ class ClientWindow(Tk):
                     value:"str" = data[ClientWindow.MEMORY_JSON_KEY[jsonKey]]
                     setMethod(value=value)  # Ignore annotation error because parameter name specification is unable.
                 except Exception as e:
-                    logger.error(msg=e)
+                    logger.error(msg=displayError(error=e))
                     defaultMethod()
         else:
             self.restoreDefaultData()
@@ -329,4 +329,4 @@ if __name__ == "__main__":
         window.mainloop()
         window.saveData()
     except Exception as e:
-        logger.error(msg=e)
+        logger.error(msg=displayError(error=e))

@@ -2,7 +2,7 @@ from socket import socket, AF_INET, SOCK_STREAM, dup, error
 from typing import Union
 from laboratoryTools.network.core import IP
 from laboratoryTools.network.resources import PORT, PASSWORD
-from laboratoryTools.logging import logger
+from laboratoryTools.logging import logger, displayError
 from enum import Enum, auto
 from select import select
 import rsa
@@ -142,7 +142,7 @@ class ServerSocket(Socket):
                             try:
                                 clientSocket.key = rsa.decrypt(crypto=msgReceived, priv_key=clientSocket.privKey).decode()
                             except Exception as e:
-                                logger.error(msg=e)
+                                logger.error(msg=displayError(error=e))
                                 abort = True
                             else:
                                 clientSocket.statut = Socket.STATUT.UNTRUSTED
@@ -177,13 +177,13 @@ class ServerSocket(Socket):
                         clientSocket.close()
                         self.clientSocketList.remove(clientSocket)
                 except Exception as e:
-                    logger.error(msg="{} {}".format(e, clientSocket))
+                    logger.error(msg="{} {}".format(displayError(error=e), clientSocket))
                     try:
                         logger.info(msg="Client disconnection: {}".format(clientSocket))
                         clientSocket.close()
                         self.clientSocketList.remove(clientSocket)
                     except Exception as e:
-                        logger.error(msg="{} {}".format(e, clientSocket))
+                        logger.error(msg="{} {}".format(displayError(error=e), clientSocket))
 
     def manageOKClientSocketMsg(self)->"bool":
         clientSocketList = list(filter(lambda clientSocket: clientSocket.statut == Socket.STATUT.OK, self.clientSocketList))
@@ -205,13 +205,13 @@ class ServerSocket(Socket):
                         else:
                             self.msgReceivedCallback(clientSocket=clientSocket, msg=msgReceived)
                 except Exception as e:
-                    logger.error(msg="{} {}".format(e, clientSocket))
+                    logger.error(msg="{} {}".format(displayError(error=e), clientSocket))
                     try:
                         logger.info(msg="Client disconnection: {}".format(clientSocket))
                         clientSocket.close()
                         self.clientSocketList.remove(clientSocket)
                     except Exception as e:
-                        logger.error(msg="{} {}".format(e, clientSocket))
+                        logger.error(msg="{} {}".format(displayError(error=e), clientSocket))
         return True
 
     def manageClientSocketMsg(self)->"bool":
@@ -246,7 +246,7 @@ class ServerSocket(Socket):
                     clientSocket.send_s(data=ServerSocket.STOP_SERVER)
                 clientSocket.close()
             except Exception as e:
-                logger.error(msg="{} {}".format(e, clientSocket))
+                logger.error(msg="{} {}".format(displayError(error=e), clientSocket))
         self.clientSocketList.clear()
         logger.info(msg="Server shutdown {}".format(self))
         self.close()
@@ -297,7 +297,7 @@ class ClientSocket(Socket):
                         try:
                             self.pubKey = rsa.PublicKey.load_pkcs1(keyfile=msgReceived)
                         except Exception as e:
-                            logger.error(msg=e)
+                            logger.error(msg=displayError(error=e))
                             errorCauseMsg = "Enable to load RSA PUB KEY from server."
                         else:
                             self.key = SecurityManager.generateKey(nbChar=50)
@@ -368,4 +368,4 @@ if __name__ == "__main__":
     try:
         pass
     except Exception as e:
-        logger.error(msg=e)
+        logger.error(msg=displayError(error=e))

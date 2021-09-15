@@ -1,4 +1,4 @@
-from laboratoryTools.logging import logger
+from laboratoryTools.logging import logger, displayError
 from subprocess import check_call
 from sys import executable
 from importlib.util import find_spec
@@ -9,7 +9,7 @@ for module, installationName in [("tkinter", "python3-tk")]:
         try:
             check_call(["sudo", "apt", "install", installationName])
         except Exception as e:
-            logger.error(msg=e)
+            logger.error(msg=displayError(error=e))
 
 
 for module in ["rsa"]:
@@ -17,4 +17,4 @@ for module in ["rsa"]:
         try:
             check_call([executable, "-m", "pip", "install", module])
         except Exception as e:
-            logger.error(msg=e)
+            logger.error(msg=displayError(error=e))

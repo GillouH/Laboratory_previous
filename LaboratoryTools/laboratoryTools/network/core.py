@@ -1,6 +1,6 @@
 from socket import getaddrinfo, gethostname, AF_INET
 from laboratoryTools.network.resources import PORT
-from laboratoryTools.logging import logger
+from laboratoryTools.logging import logger, displayError
 
 def getIP()->"str":
     ip:"str" = "127.0.0.1"
@@ -18,4 +18,4 @@ if __name__ == "__main__":
     try:
         pass
     except Exception as e:
-        logger.error(msg=e)
+        logger.error(msg=displayError(error=e))

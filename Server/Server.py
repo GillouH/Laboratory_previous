@@ -1,5 +1,5 @@
 from laboratoryTools.network import ServerSocket, ClientSocket
-from laboratoryTools.logging import logger
+from laboratoryTools.logging import logger, displayError
 
 
 class Server:
@@ -22,6 +22,6 @@ if __name__ == "__main__":
     try:
         server.start()
     except Exception as e:
-        logger.error(msg=e)
+        logger.error(msg=displayError(error=e))
     finally:
         server.stop()

@@ -1,1 +1,1 @@
-from laboratoryTools.logging.core import logger
+from laboratoryTools.logging.core import logger, displayError
