@@ -138,7 +138,7 @@ class ClientWindow(Tk):
             self.connectButton.config(text=ClientWindow.CONNECTING, state=DISABLED)
             self.setTitle(info=ClientWindow.CONNECTING)
 
-            self.clientSocket:"ClientSocket" = ClientSocket(localName=self.nameTextVariable.get())
+            self.clientSocket:"ClientSocket" = ClientSocket(name=self.nameTextVariable.get())
             self.clientSocket.connect(address=(ip, port))
 
             self.connectButton.config(text=ClientWindow.DISCONNECTION, command=self.disconnection, state=NORMAL)
@@ -149,8 +149,8 @@ class ClientWindow(Tk):
             self.listenServerThread:"Thread" = Thread(target=self.listenServerThreadRunMethod)
             self.listenServerThread.start()
             self.inputTextEntry.focus()
-            self.displayMsg(msg="Connected to {}.".format(self.clientSocket.distantName), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
-        except ConnectionError as e:
+            self.displayMsg(msg="Connected to {}.".format(self.clientSocket.name), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
+        except (ConnectionError, TimeoutError) as e:
             logger.error(msg=e)
             for widget in self.serverConfigEntry:
                 widget.config(state=NORMAL)
@@ -166,7 +166,7 @@ class ClientWindow(Tk):
 
     def disconnection(self):
         logger.info(msg="Disconnection from {}".format(self.clientSocket))
-        self.displayMsg(msg="Disconnection from {}.".format(self.clientSocket.distantName), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
+        self.displayMsg(msg="Disconnection from {}.".format(self.clientSocket.name), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
         self.isConnected = False
         if currentThread() != self.listenServerThread:
             self.listenServerThread.join()
