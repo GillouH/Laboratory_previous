@@ -104,7 +104,7 @@ class ServerSocket(Socket):
         clientSocket.timeStamp = time()
 
     def manageNewConnection(self):
-        rList:"list[ClientSocket]" = select([self], [], [], ServerSocket.SELECT_TIMEOUT)[0]
+        rList:"list[socket]" = select([self], [], [], ServerSocket.SELECT_TIMEOUT)[0]
         for socketWaitingForConnection in rList:
             socketConnected:"socket" = socketWaitingForConnection.accept()[0]
             clientSocket:"ClientSocket" = ClientSocket(socketSrc=socketConnected)

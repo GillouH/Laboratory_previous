@@ -1,4 +1,5 @@
 from laboratoryTools.logging import logger, displayError
+from typing import Union
 
 
 class SecurityManager:
