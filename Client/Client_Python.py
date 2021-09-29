@@ -1,4 +1,4 @@
-from typing import Literal, _LiteralGenericAlias, Callable
+from typing import Literal, Type, Callable
 from laboratoryTools.network import serverAddress, Socket, ServerSocket, ClientSocket
 from tkinter import Misc, Tk, StringVar, Frame, Button, Label, Entry, Text, Scrollbar # Classes used
 from tkinter.font import Font
@@ -36,7 +36,7 @@ class ClientWindow(Tk):
 
     WEIGHT:"int" = 1
 
-    Side:"_LiteralGenericAlias" = Literal['left', 'right', 'top', 'bottom']
+    Side:"Type" = Literal['left', 'right', 'top', 'bottom']
 
     ErrNoMsgDict:"dict[int,str]" = {
         10060: "The IP address seems wrong.",
@@ -92,7 +92,7 @@ class ClientWindow(Tk):
     def setTitle(self, info:"str"):
         self.title(string="{} - {}".format(ClientWindow.BASE_TITLE, info))
 
-    def createFramePack(self, side:"ClientWindow.Side", padx:"int"=None, *paramList, **paramDict)->"Frame":
+    def createFramePack(self, side:"Side", padx:"int"=None, *paramList, **paramDict)->"Frame":
         frame:"Frame" = Frame(*paramList, **paramDict)
         frame.pack(side=side)
         if padx is not None:
@@ -107,12 +107,12 @@ class ClientWindow(Tk):
         return frame
 
     def displayMsg(self, msg:"str", msgStatut:"MSG_STATUT"):
-        startIndex = self.showText.index(index=INSERT)
+        startIndex:"str" = self.showText.index(index=INSERT)
         self.showText.config(state=NORMAL)
         self.showText.insert(index=END, chars="{}\n".format(msg))
         self.showText.config(state=DISABLED)
         self.showText.see(index=END)
-        stopIndex = self.showText.index(index=INSERT)
+        stopIndex:"str" = self.showText.index(index=INSERT)
         self.showText.tag_add(msgStatut.name, startIndex, stopIndex)
 
     def listenServerThreadRunMethod(self):
@@ -130,7 +130,8 @@ class ClientWindow(Tk):
 
     def connectionThreadRunMethod(self):
         try:
-            ip, port = self.getIP(), int(self.portTextVariable.get())
+            ip:"str" = self.getIP()
+            port:"str" = int(self.portTextVariable.get())
             self.displayMsg(msg="Connection to {}:{}...".format(ip, port), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
             for widget in self.serverConfigEntry:
                 widget.config(state="readonly")
@@ -194,7 +195,7 @@ class ClientWindow(Tk):
     def checkIPInput(self, input:"str")->"bool":
         return self.checkInputIsInt(input=input, max=ClientWindow.MAX_IP)
 
-    def createPortFrame(self, master:"Misc", side:"ClientWindow.Side"):
+    def createPortFrame(self, master:"Misc", side:"Side"):
         frame:"Frame" = self.createFramePack(master=master, side=side, padx=50)
         Label(master=frame, text="PORT: ", font=self.FONT).grid(row=0, column=0)
         entry:"Entry" = Entry(master=frame, textvariable=self.portTextVariable, width=len(ClientWindow.MAX_PORT.__str__()), font=self.FONT, justify=RIGHT)
@@ -202,7 +203,7 @@ class ClientWindow(Tk):
         entry.config(validate="key", validatecommand=(self.register(func=self.checkPortInput), "%P"))
         self.serverConfigEntry.append(entry)
 
-    def createIPFrame(self, master:"Misc", side:"ClientWindow.Sde"):
+    def createIPFrame(self, master:"Misc", side:"Side"):
         frame:"Frame" = self.createFramePack(master=master, side=side)
         Label(master=frame, text="IP: ", font=self.FONT).grid(row=0, column=0)
         width:"int" = len(ClientWindow.MAX_IP.__str__())
