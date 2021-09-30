@@ -80,7 +80,7 @@ class ClientWindow(Tk):
 
     def isAbleToConnect(self)->"bool":
         textVariableList:"list[StringVar]" = self.IPTextVariableList + [self.portTextVariable, self.nameTextVariable]
-        return not self.isConnected and not False in list(map(lambda textVariable: textVariable.get() != "", textVariableList))
+        return not self.isConnected and not False in map(lambda textVariable: textVariable.get() != "", textVariableList)
     def updateConnectionButtonState(self, *paramList, **paramDict):
         self.connectButton.config(state=NORMAL if self.isAbleToConnect() else DISABLED)
 
@@ -92,14 +92,16 @@ class ClientWindow(Tk):
     def setTitle(self, info:"str"):
         self.title(string="{} - {}".format(ClientWindow.BASE_TITLE, info))
 
-    def createFramePack(self, side:"Side", padx:"int"=None, *paramList, **paramDict)->"Frame":
+    @staticmethod
+    def createFramePack(side:"Side", padx:"int"=None, *paramList, **paramDict)->"Frame":
         frame:"Frame" = Frame(*paramList, **paramDict)
         frame.pack(side=side)
         if padx is not None:
             frame.pack(padx=padx)
         return frame
-
-    def createFrameGrid(self, row:"int", column:"int", sticky:"str"=None, *paramList, **paramDict)->"Frame":
+    
+    @staticmethod
+    def createFrameGrid(row:"int", column:"int", sticky:"str"=None, *paramList, **paramDict)->"Frame":
         frame:"Frame" = Frame(*paramList, **paramDict)
         frame.grid(row=row, column=column)
         if sticky is not None:
@@ -114,6 +116,14 @@ class ClientWindow(Tk):
         self.showText.see(index=END)
         stopIndex:"str" = self.showText.index(index=INSERT)
         self.showText.tag_add(msgStatut.name, startIndex, stopIndex)
+    def displaySendMsg(self, msg:"str"):
+        self.displayMsg(msg=msg, msgStatut=ClientWindow.MSG_STATUT.SEND)
+    def displayRecvMsg(self, msg:"str"):
+        self.displayMsg(msg=msg, msgStatut=ClientWindow.MSG_STATUT.RECV)
+    def displayInfoMsg(self, msg:"str"):
+        self.displayMsg(msg=msg, msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
+    def displayErrorMsg(self, msg:"str"):
+        self.displayMsg(msg=msg, msgStatut=ClientWindow.MSG_STATUT.LOG_ERROR)
 
     def listenServerThreadRunMethod(self):
         while self.isConnected:
@@ -122,7 +132,7 @@ class ClientWindow(Tk):
                 try:
                     msgReceivedList:"list[str]" = socketWithMsg.recv_s(bufferSize=1024)
                     for msgReceived in msgReceivedList:
-                        self.displayMsg(msg="<<{}".format(msgReceived), msgStatut=ClientWindow.MSG_STATUT.RECV)
+                        self.displayRecvMsg(msg="<<{}".format(msgReceived))
                         if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
                             self.disconnection()
                 except ConnectionResetError:
@@ -132,7 +142,7 @@ class ClientWindow(Tk):
         try:
             ip:"str" = self.getIP()
             port:"str" = int(self.portTextVariable.get())
-            self.displayMsg(msg="Connection to {}:{}...".format(ip, port), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
+            self.displayInfoMsg(msg="Connection to {}:{}...".format(ip, port), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
             for widget in self.serverConfigEntry:
                 widget.config(state="readonly")
             self.connectButton.config(text=ClientWindow.CONNECTING, state=DISABLED)
@@ -149,7 +159,7 @@ class ClientWindow(Tk):
             self.listenServerThread:"Thread" = Thread(target=self.listenServerThreadRunMethod)
             self.listenServerThread.start()
             self.inputTextEntry.focus()
-            self.displayMsg(msg="Connected to {}.".format(self.clientSocket.name), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
+            self.displayInfoMsg(msg="Connected to {}.".format(self.clientSocket.name))
         except (ConnectionError, TimeoutError) as e:
             logger.error(msg=displayError(error=e))
             for widget in self.serverConfigEntry:
@@ -162,11 +172,11 @@ class ClientWindow(Tk):
                 ClientSocket.ConnectionUnableErrorMsg,
                 ClientWindow.ErrNoMsgDict[e.errno] if e.errno in ClientWindow.ErrNoMsgDict.keys() else e
             )
-            self.displayMsg(msg=errorMsg, msgStatut=ClientWindow.MSG_STATUT.LOG_ERROR)
+            self.displayErrorMsg(msg=errorMsg)
 
     def disconnection(self):
         logger.info(msg="Disconnection from {}".format(self.clientSocket))
-        self.displayMsg(msg="Disconnection from {}.".format(self.clientSocket.name), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
+        self.displayInfoMsg(msg="Disconnection from {}.".format(self.clientSocket.name))
         self.isConnected = False
         if currentThread() != self.listenServerThread:
             self.listenServerThread.join()
@@ -183,17 +193,20 @@ class ClientWindow(Tk):
         thread.start()
 
     # Callbacks to check inputs for PORT/IP entries
-    def checkInputIsInt(self, input:"str", max:"int")->"bool":
+    @staticmethod
+    def checkInputIsInt(input:"str", max:"int")->"bool":
         try:
             number:"int" = int(input)
             return number >= 0 and number <= max
         except Exception as e:
             logger.error(msg=displayError(error=e))
             return input == ""
-    def checkPortInput(self, input:"str")->"bool":
-        return self.checkInputIsInt(input=input, max=ClientWindow.MAX_PORT)
-    def checkIPInput(self, input:"str")->"bool":
-        return self.checkInputIsInt(input=input, max=ClientWindow.MAX_IP)
+    @staticmethod
+    def checkPortInput(input:"str")->"bool":
+        return ClientWindow.checkInputIsInt(input=input, max=ClientWindow.MAX_PORT)
+    @staticmethod
+    def checkIPInput(input:"str")->"bool":
+        return ClientWindow.checkInputIsInt(input=input, max=ClientWindow.MAX_IP)
 
     def createPortFrame(self, master:"Misc", side:"Side"):
         frame:"Frame" = self.createFramePack(master=master, side=side, padx=50)
@@ -245,7 +258,7 @@ class ClientWindow(Tk):
         if self.isAbleToSend():
             msgToSend:"str" = self.inputTextVariable.get()
             self.clientSocket.send_s(data=msgToSend)
-            self.displayMsg(msg=">>{}".format(msgToSend), msgStatut=ClientWindow.MSG_STATUT.SEND)
+            self.displaySendMsg(msg=">>{}".format(msgToSend))
             self.inputTextVariable.set(value="")
 
     def createInputTextFrame(self, master:"Misc", row:"int", column:"int"):

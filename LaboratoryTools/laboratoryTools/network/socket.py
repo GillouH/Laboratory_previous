@@ -23,8 +23,8 @@ class Socket(socket):
     MSG_DISCONNECTION:"str" = ""
     END_MSG:"str" = "\0"
 
-    @classmethod
-    def createSocket(cls)->"socket":
+    @staticmethod
+    def createSocket()->"socket":
         return socket(family=AF_INET, type=SOCK_STREAM)
 
     def __init__(self, name:"str"=None, socketSrc:"socket"=None):
@@ -113,18 +113,18 @@ class ServerSocket(Socket):
             thread:"Thread" = Thread(target=self.sendRSAPubKey, kwargs={"clientSocket": clientSocket})
             thread.start()
 
-    @classmethod
-    def socketFilterByStatut(cls, clientSocket:"ClientSocket", statuts:"list[Socket.STATUT]")->bool:
+    @staticmethod
+    def socketFilterByStatut(clientSocket:"ClientSocket", statuts:"list[Socket.STATUT]")->bool:
         return clientSocket.statut in statuts
 
-    @classmethod
-    def newSocketFilter(cls, clientSocket:"ClientSocket")->"bool":
+    @staticmethod
+    def newSocketFilter(clientSocket:"ClientSocket")->"bool":
         statutList:"list[Socket.STATUT]" = [
             Socket.STATUT.NEW,
             Socket.STATUT.UNTRUSTED,
             Socket.STATUT.TRUSTED
         ]
-        return cls.socketFilterByStatut(clientSocket=clientSocket, statuts=statutList)
+        return ServerSocket.socketFilterByStatut(clientSocket=clientSocket, statuts=statutList)
 
     def manageNewClientSocketMsg(self):
         clientSocketList:"list[ClientSocket]" = list(filter(ServerSocket.newSocketFilter, self.clientSocketList))
