@@ -141,8 +141,8 @@ class ClientWindow(Tk):
     def connectionThreadRunMethod(self):
         try:
             ip:"str" = self.getIP()
-            port:"str" = int(self.portTextVariable.get())
-            self.displayInfoMsg(msg="Connection to {}:{}...".format(ip, port), msgStatut=ClientWindow.MSG_STATUT.LOG_INFO)
+            port:"int" = int(self.portTextVariable.get())
+            self.displayInfoMsg(msg="Connection to {}:{}...".format(ip, port))
             for widget in self.serverConfigEntry:
                 widget.config(state="readonly")
             self.connectButton.config(text=ClientWindow.CONNECTING, state=DISABLED)
