@@ -1,4 +1,4 @@
-from socket import socket, AF_INET, SOCK_STREAM, dup, error
+from socket import socket, AF_INET, SOCK_STREAM, dup, error, timeout
 from typing import Union
 from laboratoryTools.network.core import IP
 from laboratoryTools.network.resources import PORT, PASSWORD
@@ -6,10 +6,24 @@ from laboratoryTools.logging import logger, displayError
 from enum import Enum, auto
 from select import select
 import rsa
+from rsa.key import AbstractKey
 from time import time
 from laboratoryTools.securityManager import SecurityManager
 from threading import Thread
 
+class ConnectionProcessError(ConnectionError):
+    pass
+
+class UnknownError(Exception):
+    def __init__(self, msgOrErrorCode:"Union[str,int]"):
+        self.msg:"str" = ""
+        if isinstance(msgOrErrorCode, str):
+            self.msg = msgOrErrorCode
+        elif isinstance(msgOrErrorCode, int):
+            self.msg = "<errorCode: {}>".format(msgOrErrorCode)
+
+    def __str__(self):
+        return self.msg
 
 class Socket(socket):
     class STATUT(Enum):
@@ -18,7 +32,7 @@ class Socket(socket):
         TRUSTED = auto()    # password checked - waiting for name
         OK = auto() # everything is checked
 
-    CONNECTION_TIMEOUT:"float" = 1
+    CONNECTION_TIMEOUT:"float" = 5
     SELECT_TIMEOUT:"float" = 0.05
     MSG_DISCONNECTION:"str" = ""
     END_MSG:"str" = "\0"
@@ -89,6 +103,8 @@ class ServerSocket(Socket):
     ACCEPTED:"str" = "ACCEPTED"
     STOP_SERVER:"str" = "STOP SERVER"
 
+    ClientDisconnectedErrorMsg:"str" = "Client is disconnected."
+
     def __init__(self, name:"str"=None):
         super().__init__(name=name)
         self.clientSocketList:"list[ClientSocket]" = []
@@ -132,30 +148,24 @@ class ServerSocket(Socket):
             rList:"list[ClientSocket]" = select(clientSocketList, [], [], ServerSocket.SELECT_TIMEOUT)[0]
             for clientSocket in rList:
                 try:
-                    abort:bool = False
                     msgReceived:"Union[bytes,list[str],str]" = clientSocket.recv(1024) if clientSocket.key is None else clientSocket.recv_s(bufferSize=1024)
                     if isinstance(msgReceived, bytes):
-                        if msgReceived == Socket.MSG_DISCONNECTION.encode():
-                            abort = True
-                        elif clientSocket.statut == Socket.STATUT.NEW:
+                        assert msgReceived != Socket.MSG_DISCONNECTION.encode(), ServerSocket.ClientDisconnectedErrorMsg
+                        if clientSocket.statut == Socket.STATUT.NEW:
                             logger.info(msg="Receiving KEY from {}".format(clientSocket))
-                            try:
-                                clientSocket.key = rsa.decrypt(crypto=msgReceived, priv_key=clientSocket.privKey).decode()
-                            except Exception as e:
-                                logger.error(msg=displayError(error=e))
-                                abort = True
-                            else:
-                                clientSocket.statut = Socket.STATUT.UNTRUSTED
-                                logger.info(msg="Ask PASSWORD to {}".format(clientSocket))
-                                clientSocket.send_s(data=ServerSocket.ASK_PASSWORD)
-                                clientSocket.timeStamp = time()
+                            assert clientSocket.privKey is not None, "Client RSA PRIV KEY is not defined"
+                            clientSocket.key = rsa.decrypt(crypto=msgReceived, priv_key=clientSocket.privKey).decode()
+                            clientSocket.statut = Socket.STATUT.UNTRUSTED
+                            logger.info(msg="Ask PASSWORD to {}".format(clientSocket))
+                            clientSocket.send_s(data=ServerSocket.ASK_PASSWORD)
+                            clientSocket.timeStamp = time()
                         else:
-                            abort = True
+                            raise UnknownError(4)
                     elif isinstance(msgReceived, list) and len(msgReceived) == 1:
                         msgReceived = msgReceived[0]
-                        if msgReceived == Socket.MSG_DISCONNECTION:
-                            abort = True
-                        elif clientSocket.statut == Socket.STATUT.UNTRUSTED and msgReceived == PASSWORD:
+                        assert msgReceived != Socket.MSG_DISCONNECTION, ServerSocket.ClientDisconnectedErrorMsg
+                        if clientSocket.statut == Socket.STATUT.UNTRUSTED:
+                            assert msgReceived == PASSWORD, "Client didn't give the right PASSWORD"
                             logger.info(msg="Receiving PASSWORD from {}".format(clientSocket))
                             clientSocket.statut = Socket.STATUT.TRUSTED
                             logger.info(msg="Ask name {}".format(clientSocket))
@@ -168,14 +178,10 @@ class ServerSocket(Socket):
                             logger.info(msg="Client accepted {}".format(clientSocket))
                             clientSocket.send_s(data=ServerSocket.ACCEPTED)
                         else:
-                            abort = True
+                            raise UnknownError(5)
                     else:
-                        abort = True
+                        raise UnknownError(6)
 
-                    if abort:
-                        logger.info(msg="Client disconnected: {}".format(clientSocket))
-                        clientSocket.close()
-                        self.clientSocketList.remove(clientSocket)
                 except Exception as e:
                     logger.error(msg="{} {}".format(displayError(error=e), clientSocket))
                     try:
@@ -201,6 +207,7 @@ class ServerSocket(Socket):
                             self.loop = False
                             return False
                         elif msgReceived == ServerSocket.ASK_NAME:
+                            assert self.name is not None
                             clientSocket.send_s(data=self.name)
                         else:
                             self.msgReceivedCallback(clientSocket=clientSocket, msg=msgReceived)
@@ -257,6 +264,8 @@ class ServerSocket(Socket):
 
 class ClientSocket(Socket):
     ConnectionUnableErrorMsg:"str" = "The connection to the server is impossible."
+    ServerShutDownErrorMsg = "Server has shut down."
+    ServerCloseConnectionErrorMsg = "Server has closed the connection."
 
     def __init__(self, name:"str"=None, socketSrc:"socket"=None):
         super().__init__(name=None, socketSrc=socketSrc)
@@ -271,97 +280,94 @@ class ClientSocket(Socket):
         return self.getpeername()
 
     def connect(self, address:"tuple[str,int]"):
-        super().connect(address)
-        errorCauseMsg = None
-        def unknowError(errorCode:"int"):
-            return "Unknown error. ({})".format(errorCode)
-        serverShutDownErrorMsg = "Server has shut down."
-        serverCloseConnectionErrorMsg = "Server closed the connection."
-        abort, done = False, False
-        accepted = False
-        while not abort and not done and errorCauseMsg is None:
-            if self.timeStamp is not None and time() - self.timeStamp > ClientSocket.CONNECTION_TIMEOUT:
-                errorCauseMsg = "Server take too much time to respond."
-                continue
-            rList:"list[ClientSocket]" = select([self], [], [], ClientSocket.SELECT_TIMEOUT)[0]
-            for socketWithMsg in rList:
-                msgReceived:"Union[bytes,list[str]]" = socketWithMsg.recv(1024) if self.key is None else socketWithMsg.recv_s(bufferSize=1024)
-                if isinstance(msgReceived, bytes):
-                    if msgReceived.decode() in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
-                        if msgReceived.decode() == ServerSocket.STOP_SERVER:
-                            errorCauseMsg = serverShutDownErrorMsg
-                        elif msgReceived.decode() == Socket.MSG_DISCONNECTION:
-                            errorCauseMsg = serverCloseConnectionErrorMsg
-                    elif self.statut == Socket.STATUT.NEW:
-                        logger.info(msg="Receiving RSA PUB KEY from {}".format(socketWithMsg))
-                        try:
-                            self.pubKey = rsa.PublicKey.load_pkcs1(keyfile=msgReceived)
-                        except Exception as e:
-                            logger.error(msg=displayError(error=e))
-                            errorCauseMsg = "Enable to load RSA PUB KEY from server."
-                        else:
+        try:
+            self.settimeout(Socket.CONNECTION_TIMEOUT)
+            super().connect(address)
+            self.settimeout(None)
+            done = False
+            accepted = False
+            while not done:
+                assert self.timeStamp is None or time() - self.timeStamp <= ClientSocket.CONNECTION_TIMEOUT, "Server take too much time to respond."
+                rList:"list[ClientSocket]" = select([self], [], [], ClientSocket.SELECT_TIMEOUT)[0]
+                for socketWithMsg in rList:
+                    msgReceived:"Union[bytes,list[str],str]" = socketWithMsg.recv(1024) if self.key is None else socketWithMsg.recv_s(bufferSize=1024)
+                    if isinstance(msgReceived, bytes):
+                        if msgReceived in [msg.encode() for msg in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION)]:
+                            assert msgReceived != ServerSocket.STOP_SERVER.encode(), ClientSocket.ServerShutDownErrorMsg
+                            assert msgReceived != ServerSocket.MSG_DISCONNECTION, ClientSocket.ServerCloseConnectionErrorMsg
+                        elif self.statut == Socket.STATUT.NEW:
+                            logger.info(msg="Receiving RSA PUB KEY from {}".format(socketWithMsg))
+                            keyReceived:"AbstractKey" = rsa.PublicKey.load_pkcs1(keyfile=msgReceived)
+                            assert isinstance(keyReceived, rsa.PublicKey), "The key received is not an RSA PUB KEY"
+                            self.pubKey = keyReceived
                             self.key = SecurityManager.generateKey(nbChar=50)
                             logger.info(msg="Sending key to {}".format(socketWithMsg))
                             self.send(rsa.encrypt(message=self.key.encode(), pub_key=self.pubKey))
                             self.statut = Socket.STATUT.UNTRUSTED
                             self.timeStamp = time()
-                    else:
-                        errorCauseMsg = unknowError(errorCode=1)
-                elif isinstance(msgReceived, list) and len(msgReceived) == 1:
-                    msgReceived = msgReceived[0]
-                    if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
-                        if msgReceived == ServerSocket.STOP_SERVER:
-                            errorCauseMsg = serverShutDownErrorMsg
-                        elif msgReceived == Socket.MSG_DISCONNECTION:
-                            errorCauseMsg = serverCloseConnectionErrorMsg
-                    elif self.statut == Socket.STATUT.UNTRUSTED:
-                        if msgReceived == ServerSocket.ASK_PASSWORD:
+                        else:
+                            raise UnknownError(1)
+                    elif isinstance(msgReceived, list) and len(msgReceived) == 1:
+                        msgReceived = msgReceived[0]
+                        if msgReceived in (ServerSocket.STOP_SERVER, Socket.MSG_DISCONNECTION):
+                            assert msgReceived != ServerSocket.STOP_SERVER.encode(), ClientSocket.ServerShutDownErrorMsg
+                            assert msgReceived != ServerSocket.MSG_DISCONNECTION, ClientSocket.ServerCloseConnectionErrorMsg
+                        elif self.statut == Socket.STATUT.UNTRUSTED:
+                            assert msgReceived == ServerSocket.ASK_PASSWORD, "Server didn't ask for PASSWORD."
                             logger.info(msg="Receiving PASSWORD request from {}".format(socketWithMsg))
                             logger.info(msg="Sending PASSWORD to {}".format(socketWithMsg))
                             self.send_s(data=PASSWORD)
                             self.statut = Socket.STATUT.TRUSTED
                             self.timeStamp = time()
-                        else:
-                            errorCauseMsg = "Server didn't ask for PASSWORD."
-                    elif self.statut == Socket.STATUT.TRUSTED:
-                        if msgReceived == ServerSocket.ASK_NAME:
+                        elif self.statut == Socket.STATUT.TRUSTED:
+                            assert msgReceived == ServerSocket.ASK_NAME, "Server didn't ask for name."
                             logger.info(msg="Receiving name request from {}".format(socketWithMsg))
                             logger.info(msg="Sending name to {}".format(socketWithMsg))
-                            self.send_s(data=self.localName)
+                            self.send_s(data=self.localName if isinstance(self.localName, str) else ClientSocket.__name__)
                             self.statut = Socket.STATUT.OK
                             self.timeStamp = None
-                        else:
-                            errorCauseMsg = "Server didn't ask for name."
-                    elif self.statut == Socket.STATUT.OK and not accepted:
-                        if msgReceived == ServerSocket.ACCEPTED:
+                        elif self.statut == Socket.STATUT.OK and not accepted:
+                            assert msgReceived == ServerSocket.ACCEPTED, "Server didn't accept the connection."
                             accepted = True
                             logger.info(msg="Ask name {}".format(socketWithMsg))
                             self.send_s(data=ServerSocket.ASK_NAME)
+                        elif self.statut == Socket.STATUT.OK:
+                            logger.info(msg="Receiving name from {}".format(socketWithMsg))
+                            self.name = msgReceived
+                            logger.info(msg="Connected to {}".format(socketWithMsg))
+                            done = True
                         else:
-                            errorCauseMsg = "Server didn't accept the connection."
-                    elif self.statut == Socket.STATUT.OK:
-                        logger.info(msg="Receiving name from {}".format(socketWithMsg))
-                        self.name = msgReceived
-                        logger.info(msg="Connected to {}".format(socketWithMsg))
-                        done = True
-                else:
-                    errorCauseMsg = unknowError(errorCode=2)
+                            raise UnknownError(2)
+                    else:
+                        raise UnknownError(3)
 
-        if errorCauseMsg is not None:
-            errorMsg = "{}{} {}".format(ClientSocket.ConnectionUnableErrorMsg, " {}".format(errorCauseMsg), self)
+        except Exception as e:
             self.close()
-            raise ConnectionError(errorMsg)
+            logger.error(msg=displayError(error=e))
+            if isinstance(e, timeout):
+                raise ConnectionError("{} No server found at the IP address {}.".format(ClientSocket.ConnectionUnableErrorMsg, address[0]))
+            elif isinstance(e, ConnectionRefusedError):
+                raise ConnectionError("{} A server is found at the IP address {} but did not respond on port {}.".format(ClientSocket.ConnectionUnableErrorMsg, *address))
+            elif isinstance(e, AssertionError):
+                raise ConnectionProcessError("{} {}".format(ClientSocket.ConnectionUnableErrorMsg, e.with_traceback(e.__traceback__)))
+            elif isinstance(e, UnknownError):
+                raise e
+            else:
+                raise UnknownError(e.with_traceback(e.__traceback__).__str__())
 
     def recv_s(self, bufferSize:"int")->"list[str]":
         if self.key is None:
             raise OSError("{}.{} can't be used until key argument is None. Use {} method instead.".format(self.__class__.__qualname__, self.recv_s.__name__, self.recv.__name__))
-        msgReceived = SecurityManager.decrypt(text=self.recv(bufferSize).decode(), key=self.key)
+        msgReceived:"Union[str,bytes]" = SecurityManager.decrypt(text=self.recv(bufferSize).decode(), key=self.key)
+        assert isinstance(msgReceived, str)
         return [msgReceived] if msgReceived == Socket.MSG_DISCONNECTION else msgReceived.split(Socket.END_MSG)[:-1]
 
     def send_s(self, data:"str")->"int":
         if self.key is None:
             raise OSError("{}.{} can't be used until key argument is None. Use {} method instead.".format(self.__class__.__qualname__, self.send_s.__name__, self.send.__name__))
-        return self.send(SecurityManager.encrypt(text=data+Socket.END_MSG, key=self.key, encoded=True))
+        msgToSend:"Union[str,bytes]" = SecurityManager.encrypt(text=data+Socket.END_MSG, key=self.key, encoded=True)
+        assert isinstance(msgToSend, bytes)
+        return self.send(msgToSend)
 
 
 if __name__ == "__main__":
