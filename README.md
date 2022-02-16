@@ -121,8 +121,6 @@ Having say this, feel free to give me some feedback as mentioned in [Feedback se
 
 ## Roadmap
 
-- Use JSON format for exchanges between the server and the clients. (Soon)
-- Change of message display in tkinter window for Client_Python.py program. (Soon)
 - Block IP address when a client try to connect but don't pass the connection process. (Soon)
 - Enable symmetric-key modification. (Soon)
 - Enable name modification. (Soon)

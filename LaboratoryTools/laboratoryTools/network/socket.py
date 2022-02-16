@@ -9,6 +9,7 @@ import rsa
 from time import time
 from laboratoryTools.securityManager import SecurityManager
 from threading import Thread
+from json import dumps, loads
 
 
 class Socket(socket):
@@ -356,12 +357,14 @@ class ClientSocket(Socket):
         if self.key is None:
             raise OSError("{}.{} can't be used until key argument is None. Use {} method instead.".format(self.__class__.__qualname__, self.recv_s.__name__, self.recv.__name__))
         msgReceived = SecurityManager.decrypt(text=self.recv(bufferSize).decode(), key=self.key)
-        return [msgReceived] if msgReceived == Socket.MSG_DISCONNECTION else msgReceived.split(Socket.END_MSG)[:-1]
+        return [msgReceived] if msgReceived == Socket.MSG_DISCONNECTION else list(map(lambda data: loads(data)["msg"], msgReceived.split(Socket.END_MSG)[:-1]))
 
     def send_s(self, data:"str")->"int":
         if self.key is None:
             raise OSError("{}.{} can't be used until key argument is None. Use {} method instead.".format(self.__class__.__qualname__, self.send_s.__name__, self.send.__name__))
-        return self.send(SecurityManager.encrypt(text=data+Socket.END_MSG, key=self.key, encoded=True))
+        msgJson = dumps(obj={"msg": data}, ensure_ascii=False)
+        msg = SecurityManager.encrypt(text=msgJson+Socket.END_MSG, key=self.key, encoded=True)
+        return self.send(msg)
 
 
 if __name__ == "__main__":
