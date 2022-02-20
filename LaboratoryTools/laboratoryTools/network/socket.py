@@ -38,10 +38,11 @@ class Socket(socket):
             super().__init__(family=socketSrc.family, type=socketSrc.type, proto=socketSrc.proto, fileno=dup(socketSrc.fileno()))
             self.name:"Union[str,None]" = name
             self.statut:"Union[Socket.STATUT,None]" = None
+            self.IP = None
+            self.PORT = None
 
-    # méthode abstraite
-    def getIPPort(self):
-        raise NotImplementedError()
+    def getIPPort(self)->"str":
+        return "{}:{}".format(self.IP, self.PORT)
 
     def isClosed(self)->"bool":
         return self.fileno() == -1
@@ -79,7 +80,7 @@ class Socket(socket):
     def __str__(self)->"str":
         s:"str" = "[{}{}{}]".format(
             "" if self.name is None else "{} - ".format(self.name),
-            "{}:{}".format(*self.getIPPort()),
+            self.getIPPort(),
             "" if self.statut is None else " - {}".format(self.statut.name)
         )
         return s
@@ -94,9 +95,6 @@ class ServerSocket(Socket):
         super().__init__(name=name)
         self.clientSocketList:"list[ClientSocket]" = []
         self.loop:"bool" = False
-
-    def getIPPort(self)->"tuple[str,int]":
-        return self.getsockname()
 
     def sendRSAPubKey(self, clientSocket:"ClientSocket"):
         clientSocket.pubKey, clientSocket.privKey = rsa.newkeys(nbits=2048, poolsize=8)
@@ -229,6 +227,7 @@ class ServerSocket(Socket):
 
     def start(self, ip:"str"=IP, port:"int"=PORT):
         self.bind((ip, port))
+        self.IP, self.PORT = self.getsockname()
         self.listen(5)
         logger.info(msg="Server ready {}".format(self))
 
@@ -267,12 +266,12 @@ class ClientSocket(Socket):
         self.privKey:"Union[rsa.PrivateKey,None]" = None
         self.key:"Union[str,None]" = None
         self.timeStamp:"Union[float,None]" = None
-
-    def getIPPort(self)->"tuple[str,int]":
-        return self.getpeername()
+        if socketSrc is not None:
+            self.IP, self.PORT = socketSrc.getpeername()
 
     def connect(self, address:"tuple[str,int]"):
         super().connect(address)
+        self.IP, self.PORT = self.getpeername()
         errorCauseMsg = None
         def unknowError(errorCode:"int"):
             return "Unknown error. ({})".format(errorCode)
