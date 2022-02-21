@@ -31,6 +31,7 @@
     <Compile Include="laboratoryTools\network\core.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="laboratoryTools\network\resources.json" />
     <Compile Include="laboratoryTools\network\resources.py" />
     <Compile Include="laboratoryTools\network\socket.py">
       <SubType>Code</SubType>
