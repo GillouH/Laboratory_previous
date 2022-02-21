@@ -2,15 +2,16 @@ from laboratoryTools.logging import logger, displayError
 from os.path import dirname, join
 from json import loads
 
-filePath:"str" = join(dirname(__file__), "resources.json")
+FILE_PATH:"str" = join(dirname(__file__), "resources.json")
 
 content:"str" = ""
-with open(filePath, "r") as file:
+with open(FILE_PATH, "r") as file:
     content = file.read()
 
-resources:"dict[str,any]" = loads(s=content)
-PORT:"int" = resources["PORT"]
-PASSWORD:"str" = resources["PASSWORD"]
+RESOURCES:"dict[str,any]" = loads(s=content)
+
+PORT:"int" = RESOURCES["PORT"]
+PASSWORD:"str" = RESOURCES["PASSWORD"]
 
 if __name__ == "__main__":
     try:
