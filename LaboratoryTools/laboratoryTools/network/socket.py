@@ -90,11 +90,13 @@ class ServerSocket(Socket):
     ASK_NAME:"str" = "NAME ?"
     ACCEPTED:"str" = "ACCEPTED"
     STOP_SERVER:"str" = "STOP SERVER"
+    BLOKED_IP_TIMEOUT = 5*60
 
     def __init__(self, name:"str"=None):
         super().__init__(name=name)
         self.clientSocketList:"list[ClientSocket]" = []
         self.loop:"bool" = False
+        self.ipBlockedList = []
 
     def sendRSAPubKey(self, clientSocket:"ClientSocket"):
         clientSocket.pubKey, clientSocket.privKey = rsa.newkeys(nbits=2048, poolsize=8)
@@ -107,10 +109,13 @@ class ServerSocket(Socket):
         for socketWaitingForConnection in rList:
             socketConnected:"socket" = socketWaitingForConnection.accept()[0]
             clientSocket:"ClientSocket" = ClientSocket(socketSrc=socketConnected)
-            self.clientSocketList.append(clientSocket)
-            logger.info(msg="Client connected {}".format(clientSocket))
-            thread:"Thread" = Thread(target=self.sendRSAPubKey, kwargs={"clientSocket": clientSocket})
-            thread.start()
+            if clientSocket.IP in map(lambda ipBlocked: ipBlocked[0], self.ipBlockedList):
+                clientSocket.close()
+            else:
+                self.clientSocketList.append(clientSocket)
+                logger.info(msg="Client connected {}".format(clientSocket))
+                thread:"Thread" = Thread(target=self.sendRSAPubKey, kwargs={"clientSocket": clientSocket})
+                thread.start()
 
     @staticmethod
     def socketFilterByStatut(clientSocket:"ClientSocket", statuts:"list[Socket.STATUT]")->bool:
@@ -171,13 +176,11 @@ class ServerSocket(Socket):
                     else:
                         abort = True
 
-                    if abort:
-                        logger.info(msg="Client disconnected: {}".format(clientSocket))
-                        clientSocket.close()
-                        self.clientSocketList.remove(clientSocket)
+                    assert not abort, "Coonection process aborted."
                 except Exception as e:
                     logger.error(msg="{} {}".format(displayError(error=e), clientSocket))
                     try:
+                        self.ipBlockedList.append((clientSocket.IP, time()+ServerSocket.BLOKED_IP_TIMEOUT))
                         logger.info(msg="Client disconnection: {}".format(clientSocket))
                         clientSocket.close()
                         self.clientSocketList.remove(clientSocket)
@@ -221,9 +224,13 @@ class ServerSocket(Socket):
         def clientSocketToDisconnectFilter(clientSocket:"ClientSocket")->"bool":
             return ServerSocket.newSocketFilter(clientSocket=clientSocket) and clientSocket.timeStamp is not None and time() - clientSocket.timeStamp > ServerSocket.CONNECTION_TIMEOUT
         for clientSocket in filter(clientSocketToDisconnectFilter, self.clientSocketList):
+            self.ipBlockedList.append((clientSocket.IP, time()+ServerSocket.BLOKED_IP_TIMEOUT))
             logger.info(msg="Client disconnected: {}".format(clientSocket))
             clientSocket.close()
             self.clientSocketList.remove(clientSocket)
+
+    def checkIpBlockedList(self):
+        self.ipBlockedList = list(filter(lambda ipBlocked: ipBlocked[1] > time(), self.ipBlockedList))
 
     def start(self, ip:"str"=IP, port:"int"=PORT):
         self.bind((ip, port))
@@ -237,6 +244,7 @@ class ServerSocket(Socket):
             if self.manageClientSocketMsg() == False:
                 break
             self.checkClientSocketToDisconnect()
+            self.checkIpBlockedList()
 
     def stop(self):
         for clientSocket in self.clientSocketList:

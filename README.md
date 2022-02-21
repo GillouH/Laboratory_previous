@@ -121,7 +121,6 @@ Having say this, feel free to give me some feedback as mentioned in [Feedback se
 
 ## Roadmap
 
-- Block IP address when a client try to connect but don't pass the connection process. (Soon)
 - Enable symmetric-key modification. (Soon)
 - Enable name modification. (Soon)
 - Create the Echo service. (Soon)
