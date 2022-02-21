@@ -38,11 +38,6 @@ class ClientWindow(Tk):
 
     Side:"Type" = Literal['left', 'right', 'top', 'bottom']
 
-    ErrNoMsgDict:"dict[int,str]" = {
-        10060: "The IP address seems wrong.",
-        10061: "The Port seems wrong."
-    }
-
     class MSG_STATUT(Enum):
         SEND = "#0000FF"
         RECV = "#FF00FF"
@@ -99,7 +94,7 @@ class ClientWindow(Tk):
         if padx is not None:
             frame.pack(padx=padx)
         return frame
-    
+
     @staticmethod
     def createFrameGrid(row:"int", column:"int", sticky:"str"=None, *paramList, **paramDict)->"Frame":
         frame:"Frame" = Frame(*paramList, **paramDict)
@@ -139,28 +134,17 @@ class ClientWindow(Tk):
                     self.disconnection()
 
     def connectionThreadRunMethod(self):
+        ip:"str" = self.getIP()
+        port:"int" = int(self.portTextVariable.get())
+        self.displayInfoMsg(msg="Connection to {}:{}...".format(ip, port))
+        for widget in self.serverConfigEntry:
+            widget.config(state="readonly")
+        self.connectButton.config(text=ClientWindow.CONNECTING, state=DISABLED)
+        self.setTitle(info=ClientWindow.CONNECTING)
+        self.clientSocket:"ClientSocket" = ClientSocket(name=self.nameTextVariable.get())
         try:
-            ip:"str" = self.getIP()
-            port:"int" = int(self.portTextVariable.get())
-            self.displayInfoMsg(msg="Connection to {}:{}...".format(ip, port))
-            for widget in self.serverConfigEntry:
-                widget.config(state="readonly")
-            self.connectButton.config(text=ClientWindow.CONNECTING, state=DISABLED)
-            self.setTitle(info=ClientWindow.CONNECTING)
-
-            self.clientSocket:"ClientSocket" = ClientSocket(name=self.nameTextVariable.get())
             self.clientSocket.connect(address=(ip, port))
-
-            self.connectButton.config(text=ClientWindow.DISCONNECTION, command=self.disconnection, state=NORMAL)
-            self.setTitle(info=ClientWindow.CONNECTED)
-            self.isConnected = True
-            self.updateSendButtonState()
-
-            self.listenServerThread:"Thread" = Thread(target=self.listenServerThreadRunMethod)
-            self.listenServerThread.start()
-            self.inputTextEntry.focus()
-            self.displayInfoMsg(msg="Connected to {}.".format(self.clientSocket.name))
-        except (ConnectionError, TimeoutError) as e:
+        except Exception as e:
             logger.error(msg=displayError(error=e))
             for widget in self.serverConfigEntry:
                 widget.config(state=NORMAL)
@@ -168,11 +152,17 @@ class ClientWindow(Tk):
             self.setTitle(info=ClientWindow.DISCONNECTED)
             self.isConnected = False
             self.updateSendButtonState()
-            errorMsg = "{} {}".format(
-                ClientSocket.ConnectionUnableErrorMsg,
-                ClientWindow.ErrNoMsgDict[e.errno] if e.errno in ClientWindow.ErrNoMsgDict.keys() else e
-            )
-            self.displayErrorMsg(msg=errorMsg)
+            
+            self.displayErrorMsg(msg=displayError(error=e))
+        else:
+            self.connectButton.config(text=ClientWindow.DISCONNECTION, command=self.disconnection, state=NORMAL)
+            self.setTitle(info=ClientWindow.CONNECTED)
+            self.isConnected = True
+            self.updateSendButtonState()
+            self.listenServerThread:"Thread" = Thread(target=self.listenServerThreadRunMethod)
+            self.listenServerThread.start()
+            self.inputTextEntry.focus()
+            self.displayInfoMsg(msg="Connected to {}.".format(self.clientSocket.name))
 
     def disconnection(self):
         logger.info(msg="Disconnection from {}".format(self.clientSocket))
