@@ -49,10 +49,11 @@ Services are not already implements. But it will be soon !!
 
 ## Deployment / Installation
 
-This is a Visual Studio solution containing several projects: Server, Client Python, and LaboratoryTools.
+This project is configurated with Visual Studio and Visual Studio Code. It contais several modules: Server, Client Python, and LaboratoryTools.
 
 **With Visual Studio:** The solution is configured to launch the Server and the Client Python project in debug mode. Internal dependencies are already managed by Visual Studio.
-**Without Visual Studio:** You need to copy LaboratoryTools/laboratoryTools folder in Server and/or Client folder depending on which project you want to run. Then, you can run it.
+**With Visual Studio Code:** The solution has two debug configuration : on for the Server and an other for the Client Python project.
+**Without any of them:** You need to copy LaboratoryTools/laboratoryTools folder in Server and/or Client folder depending on which project you want to run. Then, you can run it.
 
 
 
@@ -113,7 +114,7 @@ Both the server and the client must have a name. Those names are not a real iden
 
 ## Disclaimer
 
-I do not pretend to be a cyber security expert. So, even if I tried to secure the server in different ways, keep in mind this is not a total protection against hackers. Hence, be really careful with the data you exchange between the server and the clients. 
+I do not pretend to be a cyber security expert. So, even if I tried to secure the server in different ways, keep in mind this is not a total protection against hackers. Hence, be really careful with the data you exchange between the server and the clients.
 
 Having say this, feel free to give me some feedback as mentioned in [Feedback section](#feedback).
 

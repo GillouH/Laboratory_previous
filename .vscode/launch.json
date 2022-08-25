@@ -1,0 +1,36 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Client",
+			"cwd": "${workspaceFolder}/Client",
+			"type": "python",
+			"request": "launch",
+			"program": "Client_Python.py",
+			"console": "integratedTerminal",
+			"justMyCode": false,
+			"showReturnValue": true,
+			"subProcess": true,
+			"env": {
+				"PYTHONPATH": "$PYTHONPATH;${workspaceFolder}/LaboratoryTools"
+			}
+		},
+		{
+			"name": "Server",
+			"cwd": "${workspaceFolder}/Server",
+			"type": "python",
+			"request": "launch",
+			"program": "Server.py",
+			"console": "integratedTerminal",
+			"justMyCode": false,
+			"showReturnValue": true,
+			"subProcess": true,
+			"env": {
+				"PYTHONPATH": "$PYTHONPATH;${workspaceFolder}/LaboratoryTools"
+			}
+		}
+	]
+}
