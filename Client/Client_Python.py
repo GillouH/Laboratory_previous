@@ -3,7 +3,7 @@ from laboratoryTools.network import serverAddress, Socket, ServerSocket, ClientS
 from tkinter import Misc, Tk, StringVar, Frame, Button, Label, Entry, Text, Scrollbar # Classes used
 from tkinter.font import Font
 from tkinter import NORMAL, DISABLED    # Widget State Constants
-from threading import Thread, currentThread
+from threading import Thread, current_thread
 from select import select
 from tkinter import INSERT, END # Index Constant for Text
 from tkinter import NSEW, NS    # Fill Direction Size Constant
@@ -168,7 +168,7 @@ class ClientWindow(Tk):
         logger.info(msg="Disconnection from {}".format(self.clientSocket))
         self.displayInfoMsg(msg="Disconnection from {}.".format(self.clientSocket.name))
         self.isConnected = False
-        if currentThread() != self.listenServerThread:
+        if current_thread() != self.listenServerThread:
             self.listenServerThread.join()
         self.clientSocket.close()
 
